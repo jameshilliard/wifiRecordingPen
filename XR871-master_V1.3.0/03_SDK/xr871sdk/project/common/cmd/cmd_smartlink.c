@@ -50,7 +50,7 @@
 
 #ifdef SMARTLINK_USE_AIRKISS
 static int ak_key_used;
-static char *airkiss_key = "1234567812345678";
+static char *airkiss_key = "e1c361cc29e43fb8";
 #endif
 #ifdef SMARTLINK_USE_SMARTCONFIG
 static int sc_key_used;

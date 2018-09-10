@@ -1,0 +1,19 @@
+1. 用户名：forgetorsf
+     密码：forgetor119556259
+
+
+2. complie command
+export PATH=/home/water/workSpace/complile/gcc-arm-none-eabi-4_9-2015q2/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+cd /media/sf_project/mine/svn_linux/wifirecordingpen-svn/XR871-master_V1.3.0/03_SDK/xr871sdk/project/audioOnline/gcc
+make lib_clean;make clean
+make lib;make;make image
+
+3.test command
+
+test airkiss command:
+net airkiss start
+net airkiss stop
+
+
+
+ 
