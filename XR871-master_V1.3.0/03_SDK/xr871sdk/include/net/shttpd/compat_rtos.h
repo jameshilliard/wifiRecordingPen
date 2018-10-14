@@ -32,17 +32,19 @@
 
 #include "lwip/sockets.h"
 #include "kernel/os/os.h"
+#include "fs/fatfs/ff.h"
 
 #define DIRSEP                          '/'
 #define IS_DIRSEP_CHAR(c)               ((c) == '/')
 #define SHTTPD_SSI
+#define SHTTPD_FS
 #define SHTTPD_SSI_CALL
 #define SHTTPD_SINGLE_CONNECTION
 #define SHTTPD_LOG_ALT
 #define SHTTPD_MEM_IN_HEAP
 //#define SHTTPD_SSL
-//#define SHTTPD_CUSTOM_LOG_ON
-//#define SHTTPD_DEBUG_ON
+#define SHTTPD_CUSTOM_LOG_ON
+#define SHTTPD_DEBUG_ON
 
 #include "kernel/os/os_time.h"
 #include <time.h>
@@ -74,7 +76,7 @@ time_t TIME(time_t *timer);
 void _shttpd_free(void *ptr);
 void *_shttpd_zalloc(size_t size);
 void _shttpd_init_local_file(struct usr_file *list,int count);
-
+int _shttpd_file_inFlash(const char *name);
 #if defined(SHTTPD_THREADS)
 #define HTTP_THREAD_STACK_SIZE	(4 * 1024)
 #define _beginthread(a, b, c) do { \

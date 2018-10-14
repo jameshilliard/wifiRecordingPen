@@ -74,7 +74,7 @@ enum loglevel {
 	INFO = 2,
 };
 
-#define g_debuglevel ERROR
+#define g_debuglevel  INFO
 
 #define VP_DBG(level, fmt, args...) \
 	do {		\

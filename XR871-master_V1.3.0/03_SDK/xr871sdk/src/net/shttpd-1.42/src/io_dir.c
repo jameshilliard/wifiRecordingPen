@@ -47,8 +47,9 @@ read_dir(struct stream *stream, void *buf, size_t len)
 {
 
 	static const char footer[] = "</table></body></html>\n";
-
-	struct dirent	*dp = NULL;
+	//struct dirent	*dp = NULL;
+	FILINFO  dp;
+	FRESULT iRet=-1;
 	char		file[FILENAME_MAX], line[FILENAME_MAX + 512],
 				size[64], mod[64];
 	struct stat	st;
@@ -63,17 +64,17 @@ read_dir(struct stream *stream, void *buf, size_t len)
 		if (len < sizeof(line))
 			break;
 
-		if ((dp = readdir(stream->chan.dir.dirp)) == NULL)
+		if ((iRet = f_readdir(stream->chan.dir.dirp,&dp)) != FR_OK)
 			break;
-		DBG(("read_dir: %s", dp->d_name));
+		DBG(("read_dir: %s", dp.fname));
 
 		/* Do not show current dir and passwords file */
-		if (strcmp(dp->d_name, ".") == 0 ||
-		   strcmp(dp->d_name, HTPASSWD) == 0)
+		if (strcmp(dp.fname, ".") == 0 ||
+		   strcmp(dp.fname, HTPASSWD) == 0)
 			continue;
 
 		(void) _shttpd_snprintf(file, sizeof(file),
-		    "%s%s%s", stream->chan.dir.path, slash, dp->d_name);
+		    "%s%s%s", stream->chan.dir.path, slash, dp.fname);
 		(void) _shttpd_stat(file, &st);
 		if (S_ISDIR(st.st_mode)) {
 			_shttpd_snprintf(size,sizeof(size),"%s","&lt;DIR&gt;");
@@ -90,21 +91,21 @@ read_dir(struct stream *stream, void *buf, size_t len)
 				    "%.1fM", (float) st.st_size / 1048576);
 		}
 		(void) strftime(mod, sizeof(mod), "%d-%b-%Y %H:%M",
-			localtime(&st.st_mtime));
+			localtime((time_t *)&dp.ftime));
 
 		n = _shttpd_snprintf(line, sizeof(line),
 		    "<tr><td><a href=\"%s%s%s\">%s%s</a></td>"
 		    "<td>&nbsp;%s</td><td>&nbsp;&nbsp;%s</td></tr>\n",
-		    c->uri, slash, dp->d_name, dp->d_name,
+		    c->uri, slash, dp.fname, dp.fname,
 		    S_ISDIR(st.st_mode) ? "/" : "", mod, size);
 		(void) memcpy(buf, line, n);
 		buf = (char *) buf + n;
 		nwritten += n;
 		len -= n;
-	} while (dp != NULL);
+	} while (iRet!=FR_OK);
 
 	/* Append proper HTML footer for the page */
-	if (dp == NULL && len >= sizeof(footer)) {
+	if (iRet!=FR_OK && len >= sizeof(footer)) {
 		(void) memcpy(buf, footer, sizeof(footer));
 		nwritten += sizeof(footer);
 		stream->flags |= FLAG_CLOSED;
@@ -119,14 +120,15 @@ close_dir(struct stream *stream)
 {
 	assert(stream->chan.dir.dirp != NULL);
 	assert(stream->chan.dir.path != NULL);
-	(void) closedir(stream->chan.dir.dirp);
+	f_closedir(stream->chan.dir.dirp);
 	_shttpd_free(stream->chan.dir.path);
 }
 
 void
 _shttpd_get_dir(struct conn *c)
 {
-	if ((c->loc.chan.dir.dirp = opendir(c->loc.chan.dir.path)) == NULL) {
+    FRESULT iRet=0;
+	if ((iRet = f_opendir(c->loc.chan.dir.dirp,c->loc.chan.dir.path)) != 0) {
 		(void) _shttpd_free(c->loc.chan.dir.path);
 		_shttpd_send_server_error(c, 500, "Cannot open directory");
 	} else {

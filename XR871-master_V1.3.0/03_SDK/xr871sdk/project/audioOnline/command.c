@@ -30,13 +30,18 @@
 #include "common/cmd/cmd_util.h"
 #include "common/cmd/cmd.h"
 
-#define COMMAND_IPERF	1
-#define COMMAND_PING	1
-
+#define COMMAND_IPERF	0
+#define COMMAND_PING	0
+#define COMMAND_HTTPD    1
 /*
  * net commands
  */
 static struct cmd_data g_net_cmds[] = {
+#ifdef __PRJ_CONFIG_WLAN_STA_AP
+	{ "mode",		cmd_wlan_mode_exec },
+	{ "ap", 		cmd_wlan_ap_exec },
+#endif
+
 	{ "sta",		cmd_wlan_sta_exec },
 	{ "ifconfig",	cmd_ifconfig_exec },
 	{ "smartconfig",cmd_smart_config_exec },
@@ -48,6 +53,9 @@ static struct cmd_data g_net_cmds[] = {
 #endif
 #if COMMAND_PING
 	{ "ping",		cmd_ping_exec },
+#endif
+#if COMMAND_HTTPD
+	{ "httpd",		cmd_httpd_exec },
 #endif
 };
 

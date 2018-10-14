@@ -8,12 +8,29 @@ cd /media/sf_project/mine/svn_linux/wifirecordingpen-svn/XR871-master_V1.3.0/03_
 make lib_clean;make clean
 make lib;make;make image
 
-3.test command
+export PATH=/usr/gcc-arm-none-eabi-4_9-2015q2/bin/:/usr/local/bin:/usr/bin:/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Windows/System32/Wbem:/cygdrive/c/Windows/System32/WindowsPowerShell/v1.0:/cygdrive/c/Program Files (x86)/ATI Technologies/ATI.ACE/Core-Static:/cygdrive/c/Program Files (x86)/AMD/ATI.ACE/Core-Static:/cygdrive/c/Program Files (x86)/Microsoft SQL Server/90/Tools/binn:/cygdrive/c/Program Files/TortoiseSVN/bin
+cd /cygdrive/e/work/svnProject/wifiRecordingPen/XR871-master_V1.3.0/03_SDK/xr871sdk/project/audioOnline/gcc
+make lib_clean;make clean
+make lib;make;make image
 
+
+3.test command
 test airkiss command:
 net airkiss start
 net airkiss stop
 
+net sta set ssid @PHICOMM_59
+net sta get ssid
+net sta set psk zmt123456
+net sta get psk
+net sta enable
+net sta disable
 
+net smartconfig start
+net smartconfig stop
+
+net ping 183.232.231.172
+net ifconfig status
+net ifconfig up
 
  

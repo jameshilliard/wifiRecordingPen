@@ -30,11 +30,11 @@
 #include "common/cmd/cmd_util.h"
 #include "common/cmd/cmd.h"
 
-#define COMMAND_IPERF       1
-#define COMMAND_PING        1
+#define COMMAND_IPERF       0
+#define COMMAND_PING        0
 #define COMMAND_HTTPC       0
 #define COMMAND_TLS         0
-#define COMMAND_HTTPD       0
+#define COMMAND_HTTPD       1
 #define COMMAND_MQTT        0
 #define COMMAND_NOPOLL      0
 #define COMMAND_SNTP        0
@@ -51,11 +51,11 @@ static struct cmd_data g_net_cmds[] = {
 	{ "ap", 		cmd_wlan_ap_exec },
 #endif
 
-	{ "sta",		cmd_wlan_sta_exec },
-	{ "ifconfig",	cmd_ifconfig_exec },
-	{ "smartconfig",cmd_smart_config_exec },
-	{ "airkiss",	cmd_airkiss_exec },
-	{ "smartlink",	cmd_smartlink_exec },
+	//{ "sta",		cmd_wlan_sta_exec },
+	//{ "ifconfig",	cmd_ifconfig_exec },
+	//{ "smartconfig",cmd_smart_config_exec },
+	//{ "airkiss",	cmd_airkiss_exec },
+	//{ "smartlink",	cmd_smartlink_exec },
 
 #if COMMAND_IPERF
 	{ "iperf",		cmd_iperf_exec },

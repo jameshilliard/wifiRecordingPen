@@ -693,10 +693,10 @@ decide_what_to_do(struct conn *c)
 	} else if (_shttpd_match_extension(path,
 	    c->ctx->options[OPT_SSI_EXTENSIONS])) {
 #if !defined(SHTTPD_FS)
-	    	if ((c->loc.chan.fh =(unsigned int)_shttpd_open(path, 0, 0)) == 0) {
+	    if ((c->loc.chan.fh =(unsigned int)_shttpd_open(path, 0, 0)) == 0) {
 #else
-		if ((c->loc.chan.fd = _shttpd_open(path,
-		    O_RDONLY | O_BINARY, 0644)) == -1) {
+        c->loc.chan.fd_isflash = _shttpd_file_inFlash(path);
+    	if ((c->loc.chan.fd = (int)_shttpd_open(path,0, 0)) == 0){ 
 #endif
 			_shttpd_send_server_error(c, 500, "SSI open error");
 		} else {
@@ -704,10 +704,9 @@ decide_what_to_do(struct conn *c)
 		}
 #endif /* SHTTPD_SSI */
 #if defined(SHTTPD_FS)
-	} else if (c->ch.ims.v_time && st.st_mtime <= c->ch.ims.v_time) {
-		_shttpd_send_server_error(c, 304, "Not Modified");
-	} else if ((c->loc.chan.fd = _shttpd_open(path,
-	    O_RDONLY | O_BINARY, 0644)) != -1) {
+	//} else if (c->ch.ims.v_time && st.st_mtime <= c->ch.ims.v_time) {
+	//	_shttpd_send_server_error(c, 304, "Not Modified");
+	} else if ((c->loc.chan.fd = _shttpd_open(path,0, 0)) != -1) {
 		_shttpd_get_file(c, &st);
 #else
 	}
@@ -1639,13 +1638,15 @@ open_log_file(FILE **fpp, const char *path)
 static int
 set_alog(struct shttpd_ctx *ctx, const char *path)
 {
-	return (open_log_file(&ctx->access_log, path));
+	//return (open_log_file(&ctx->access_log, path));
+	return 0;
 }
 
 static int
 set_elog(struct shttpd_ctx *ctx, const char *path)
 {
-	return (open_log_file(&ctx->error_log, path));
+	//return (open_log_file(&ctx->error_log, path));
+	return 0;
 }
 #endif
 
@@ -1756,7 +1757,7 @@ static const struct opt {
 	const char	*default_value;	/* Default option value		*/
 	int (*setter)(struct shttpd_ctx *, const char *);
 } known_options[] = {
-	{OPT_ROOT, "root", "\tWeb root directory", ".", NULL},
+	{OPT_ROOT, "root", "\tWeb root directory", "", NULL},
 	{OPT_INDEX_FILES, "index_files", "Index files", INDEX_FILES, NULL},
 #if defined(SHTTPD_SSL)
 	{OPT_SSL_CERTIFICATE, "ssl_cert", "SSL certificate", NULL,set_ssl},

@@ -10,6 +10,7 @@
  */
 
 #include "defs.h"
+#include "fs/fatfs/ff.h"
 
 #if defined(SHTTPD_SSI)
 
@@ -31,14 +32,14 @@ struct ssi_inc {
 	unsigned int	fl;
 	char		*cfp;
 #else
-	FILE		*fp;		/* Icluded file stream		*/
+	FIL		    *fp;		/* Icluded file stream		*/
 #endif
 	char		buf[CMDBUFSIZ];	/* SSI command buffer		*/
 	size_t		nbuf;		/* Bytes in a command buffer	*/
 #if !defined(SHTTPD_FS)
 	char		*pipe;
 #else
-	FILE		*pipe;		/* #exec stream			*/
+	FIL		    *pipe;		/* #exec stream			*/
 #endif
 	struct ssi_func	func;		/* #call function		*/
 };
@@ -407,7 +408,8 @@ read_ssi(struct stream *stream, void *vbuf, size_t len)
 	struct ssi	*ssi = stream->conn->ssi;
 	struct ssi_inc	*inc = ssi->incs + ssi->nest;
 	char		*buf = vbuf;
-	int		ch = EOF, n = 0;
+	TCHAR ch = EOF;
+	int n = 0;
 #if !defined(SHTTPD_FS)
 	if (inc->cfp == NULL)
 		inc->cfp = inc->fp;
@@ -423,7 +425,8 @@ again:
 		do_exec2(ssi, buf, len, &n);
 #endif
 #if defined(SHTTPD_FS)
-	while (n + inc->nbuf < len && (ch = fgetc(inc->fp)) != EOF)
+    TCHAR* tpChar=0;
+	while (n + inc->nbuf < len && (tpChar= f_gets(&ch,1,(FIL *)inc->fp)) != NULL)
 #else
 	while (n + inc->nbuf < len && (ch = *fp++) != '\0')
 #endif
@@ -481,7 +484,7 @@ again:
 	if (ssi->nest > 0 && n + inc->nbuf < len && ch == '\0') {
 #endif
 		inc->fp = NULL;
-		inc->cfp = NULL;
+		//inc->cfp = NULL;
 		ssi->nest--;
 		inc--;
 		goto again;
@@ -490,7 +493,7 @@ again:
 	inc->cfp += n;
 	if (ch == '\0') {
 		stream->flags |= FLAG_CLOSED;
-		inc->cfp = NULL;
+		//inc->cfp = NULL;
 		inc->fp = NULL;
 	}
 #endif
@@ -507,9 +510,9 @@ close_ssi(struct stream *stream)
 
 	for (i = 0; i < NELEMS(ssi->incs); i++) {
 		if (ssi->incs[i].fp != NULL)
-			(void) fclose(ssi->incs[i].fp);
+			(void) f_close(ssi->incs[i].fp);
 		if (ssi->incs[i].pipe != NULL)
-			(void) pclose(ssi->incs[i].pipe);
+			(void) f_close(ssi->incs[i].pipe);
 	}
 #endif
 	_shttpd_free(ssi);
@@ -546,7 +549,7 @@ _shttpd_do_ssi(struct conn *c)
 		ssi->incs[0].fp = (char *)c->loc.chan.fh;
 		ssi->incs[0].fl = strlen((char *)(c->loc.chan.fh));
 #else
-		ssi->incs[0].fp = fdopen(c->loc.chan.fd, "r");
+        ssi->incs[0].fp =(FIL *)c->loc.chan.fd;;
 #endif
 		ssi->conn = c;
 		c->ssi = ssi;

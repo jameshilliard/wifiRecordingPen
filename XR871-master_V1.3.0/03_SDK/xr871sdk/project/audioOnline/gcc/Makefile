@@ -17,7 +17,7 @@ include $(ROOT_PATH)/gcc.mk
 # ----------------------------------------------------------------------------
 # project and objects
 # ----------------------------------------------------------------------------
-PROJECT := evb_audio
+PROJECT := audioOnline
 
 INCLUDE_PATHS += -I$(ROOT_PATH)/project/$(PROJECT)
 

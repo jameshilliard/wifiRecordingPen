@@ -35,7 +35,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 /*
  * project base config
  */

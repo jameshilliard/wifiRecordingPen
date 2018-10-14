@@ -5,7 +5,7 @@
 # ----------------------------------------------------------------------------
 # cross compiler
 # ----------------------------------------------------------------------------
-CC_DIR := /home/water/workSpace/complile/gcc-arm-none-eabi-4_9-2015q2/bin
+CC_DIR := /usr/gcc-arm-none-eabi-4_9-2015q2/bin
 CC_PREFIX := $(CC_DIR)/arm-none-eabi-
 
 AS      := $(CC_PREFIX)as

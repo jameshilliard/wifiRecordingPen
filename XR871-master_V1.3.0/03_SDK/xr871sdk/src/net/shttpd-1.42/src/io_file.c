@@ -90,8 +90,19 @@ read_file(struct stream *stream, void *buf, size_t len)
 	return (0);
 #endif /* USE_SENDFILE */
 #if defined(SHTTPD_FS)
-	assert(stream->chan.fd != -1);
-	return (read(stream->chan.fd, buf, len));
+	//assert(stream->chan.fd != -1);
+	if(stream->chan.fd_isflash!=0){
+	     UINT readbytes=0;
+	     f_read((FIL *)stream->chan.fd, buf, len,&readbytes);
+         return (readbytes);
+	}
+	else{
+    	int sent_length = 0;
+    	sent_length = len;
+    	char *fp = (char *)stream->conn->loc.chan.fd;
+    	memcpy(buf, fp + stream->io.total, sent_length);
+    	return sent_length;
+	}
 #else
 	int sent_length = 0;
 	sent_length = len;
@@ -105,8 +116,12 @@ static void
 close_file(struct stream *stream)
 {
 #if defined(SHTTPD_FS)
-	assert(stream->chan.fd != -1);
-	(void) close(stream->chan.fd);
+	//assert(stream->chan.fd != -1);
+	if(stream->chan.fd_isflash!=0){
+	    (void) f_close((FIL *)stream->chan.fd);
+	}
+	else
+	    stream->conn->loc.chan.fd = 0;
 #else
 	stream->conn->loc.chan.fh = 0;
 	//stream->conn->loc.chan.fi.filelength = 0;
@@ -149,13 +164,13 @@ _shttpd_get_file(struct conn *c, struct stat *stp)
 	(void) strftime(date, sizeof(date),
 	    fmt, localtime(&_shttpd_current_time));
 #if defined(SHTTPD_FS)
-	(void) strftime(lm, sizeof(lm), fmt, localtime(&stp->st_mtime));
+	(void) strftime(lm, sizeof(lm), fmt, localtime(&_shttpd_current_time));
 #else
 	(void) strftime(lm, sizeof(lm), fmt, localtime(&_shttpd_current_time));
 #endif
 #if defined(SHTTPD_FS)
 	(void) _shttpd_snprintf(etag, sizeof(etag), "%lx.%lx",
-	    (unsigned long) stp->st_mtime, (unsigned long) stp->st_size);
+	    (unsigned long)_shttpd_current_time,(unsigned long) stp->st_size);
 #else
 	(void) _shttpd_snprintf(etag, sizeof(etag), "%lx.%lx",
 		(unsigned long)_shttpd_current_time, (unsigned long) stp->st_size);

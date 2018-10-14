@@ -39,7 +39,7 @@
 #include "smart_config_crc.h"
 #include "smart_config_decode.h"
 
-#define g_debuglevel  ERROR
+#define g_debuglevel  INFO
 
 enum LEADCODE_SEQ {
 	LEAD_CODE_NOME = 0,             /* 0, not used */

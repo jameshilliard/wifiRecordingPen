@@ -17,6 +17,7 @@
 #include "md5.h"
 #include "config.h"
 #include "shttpd.h"
+#include "fs/fatfs/ff.h"
 
 #define NELEMS(ar)                 (sizeof(ar) / sizeof(ar[0]))
 
@@ -134,6 +135,7 @@ struct headers {
 union channel {
 #if defined(SHTTPD_FS)
 	int                  fd;            /* Regular static file */
+	int                  fd_isflash;            /* Regular static file */
 #else
 	unsigned int         fh;            /* file handler */
 #endif
@@ -350,7 +352,7 @@ extern int _shttpd_set_non_blocking_mode(int fd);
 extern int _shttpd_stat(const char *, struct stat *stp);
 
 #if !defined(SHTTPD_FS)
-extern char* _shttpd_open(const char *path, int flags, int mode);
+extern int _shttpd_open(const char *path, int flags, int mode);
 #else
 extern int _shttpd_open(const char *path, int flags, int mode);
 #endif

@@ -150,15 +150,43 @@ int _shttpd_lookup_file(struct local **file, const char *name)
 	return -1;
 }
 
+int _shttpd_file_inFlash(const char *name)
+{
+	struct llhead *lp;
+	struct local *local_file = NULL;
+
+	LL_FOREACH(&registered_file, lp) {
+		local_file = LL_ENTRY(lp, struct local, link);
+		if (_shttpd_strncasecmp(local_file->name, name, strlen(local_file->name) +1) == 0) {
+			return 0;
+		}
+	}
+	return -1;
+}
+
 void _shttpd_set_close_on_exec(int fd)
 {
 }
 
 int _shttpd_stat(const char *path, struct stat *stp)
 {
-        struct local *file;
+     struct local *file;
 	 if (_shttpd_lookup_file(&file, path) != 0) {
-	 	_shttpd_elog(E_LOG, NULL, "file path mismatch (%s).", __func__);
+	 	FILINFO fno;
+		FRESULT  iRet=f_stat(path,&fno);
+		_shttpd_elog(E_LOG, NULL, "%s:file path %s match? f_stat=%d ", __func__,path,iRet);
+		if(iRet==FR_OK){
+		   
+		    stp->st_size = 0;
+		    if(fno.fattrib & AM_DIR)
+		        stp->st_mode = _S_IFDIR;
+		    else
+		        stp->st_mode = _S_IFREG;
+        	if (stp->st_mode == _S_IFREG)
+        		stp->st_size = fno.fsize;
+             _shttpd_elog(E_LOG, NULL, "%s:file path %s match stp->st_mode=%d", __func__,path,stp->st_mode);
+            return 0;
+		}
 		return -1;
 	 }
 	stp->st_mode = file->mode;
@@ -169,18 +197,23 @@ int _shttpd_stat(const char *path, struct stat *stp)
 	return 0;
 }
 
-char* _shttpd_open(const char *path, int flags, int mode)
+int _shttpd_open(const char *path, int flags, int mode)
 {
 	struct local *file;
 
 	if (_shttpd_lookup_file(&file, path) != 0) {
 		_shttpd_elog(E_LOG, NULL, "file path mismatch (%s).", __func__);
-		return NULL;
+		FIL* fp=NULL;
+		FRESULT  iRet=f_open(fp,path, 0);
+		if(iRet==FR_OK){
+            return (int)fp;
+		}
+		return 0;
 	}
 	if (file->mode == _S_IFREG)
-			return file->body;
+			return (int)file->body;
 		else
-			return NULL;
+			return 0;
 }
 
 int _shttpd_remove(const char *path)
