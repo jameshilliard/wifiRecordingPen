@@ -33,4 +33,14 @@ net ping 183.232.231.172
 net ifconfig status
 net ifconfig up
 
- 
+http://192.168.51.1/a/278299.mp4
+
+net mode ap
+net ap config zss 12345678
+net ap get psk
+net httpd 1
+
+fs mount 
+fs unmount 
+fs test 
+fs rmdir

@@ -18,7 +18,15 @@
 int
 _shttpd_put_dir(const char *path)
 {
-	char		buf[FILENAME_MAX];
+#if defined(SHTTPD_MEM_IN_HEAP)
+	char *buf= NULL;
+	if ((buf = (char *)_shttpd_zalloc(FILENAME_MAX)) == NULL) {
+		DBG(("_shttpd_zalloc buf failed [%s]",__func__));
+		return (-1);
+	}
+#else
+ 	char		buf[FILENAME_MAX];
+#endif
 	const char	*s, *p;
 	struct stat	st;
 	size_t		len;
@@ -31,14 +39,25 @@ _shttpd_put_dir(const char *path)
 
 		/* Try to create intermediate directory */
 		if (_shttpd_stat(buf, &st) == -1 &&
-		    _shttpd_mkdir(buf, 0755) != 0)
-			return (-1);
+		    _shttpd_mkdir(buf, 0755) != 0){
+#if defined(SHTTPD_MEM_IN_HEAP)
+	        _shttpd_free(buf);
+#endif
+            return (-1);
+		}
 
 		/* Is path itself a directory ? */
-		if (p[1] == '\0')
-			return (0);
+		if (p[1] == '\0'){
+#if defined(SHTTPD_MEM_IN_HEAP)
+	        _shttpd_free(buf);
+#endif
+            return (0);
+		}
+			
 	}
-
+#if defined(SHTTPD_MEM_IN_HEAP)
+	_shttpd_free(buf);
+#endif
 	return (1);
 }
 
@@ -50,32 +69,50 @@ read_dir(struct stream *stream, void *buf, size_t len)
 	//struct dirent	*dp = NULL;
 	FILINFO  dp;
 	FRESULT iRet=-1;
-	char		file[FILENAME_MAX], line[FILENAME_MAX + 512],
-				size[64], mod[64];
+	//char		file[FILENAME_MAX], line[FILENAME_MAX + 512],
+	char	size[64], mod[64];
+#if defined(SHTTPD_MEM_IN_HEAP)
+	char *file= NULL;
+	if ((file = (char *)_shttpd_zalloc(FILENAME_MAX)) == NULL) {
+		DBG(("_shttpd_zalloc buf failed [%s]",__func__));
+		return (-1);
+	}
+	char *line= NULL;
+	if ((line = (char *)_shttpd_zalloc(FILENAME_MAX + 512)) == NULL) {
+		DBG(("_shttpd_zalloc buf failed [%s]",__func__));
+		return (-1);
+	}
+#else
+ 	char		file[FILENAME_MAX], line[FILENAME_MAX + 512],
+#endif
+				
 	struct stat	st;
 	struct conn	*c = stream->conn;
 	int		n, nwritten = 0;
-	const char	*slash = "";
-
+	const char	*slash = "/";
+    int   ret=0;
 	assert(stream->chan.dir.dirp != NULL);
 	assert(stream->conn->uri[0] != '\0');
 
 	do {
 		if (len < sizeof(line))
 			break;
-
+			
 		if ((iRet = f_readdir(stream->chan.dir.dirp,&dp)) != FR_OK)
 			break;
-		DBG(("read_dir: %s", dp.fname));
 
 		/* Do not show current dir and passwords file */
 		if (strcmp(dp.fname, ".") == 0 ||
 		   strcmp(dp.fname, HTPASSWD) == 0)
 			continue;
-
-		(void) _shttpd_snprintf(file, sizeof(file),
+			
+		(void) _shttpd_snprintf(file, FILENAME_MAX,
 		    "%s%s%s", stream->chan.dir.path, slash, dp.fname);
-		(void) _shttpd_stat(file, &st);
+		    
+		ret=_shttpd_stat(file, &st);
+		if(ret!=0)
+		    continue;
+		DBG(("read_dir: %s", file));
 		if (S_ISDIR(st.st_mode)) {
 			_shttpd_snprintf(size,sizeof(size),"%s","&lt;DIR&gt;");
 		} else {
@@ -93,12 +130,13 @@ read_dir(struct stream *stream, void *buf, size_t len)
 		(void) strftime(mod, sizeof(mod), "%d-%b-%Y %H:%M",
 			localtime((time_t *)&dp.ftime));
 
-		n = _shttpd_snprintf(line, sizeof(line),
+		n = _shttpd_snprintf(line, FILENAME_MAX + 512,
 		    "<tr><td><a href=\"%s%s%s\">%s%s</a></td>"
 		    "<td>&nbsp;%s</td><td>&nbsp;&nbsp;%s</td></tr>\n",
 		    c->uri, slash, dp.fname, dp.fname,
 		    S_ISDIR(st.st_mode) ? "/" : "", mod, size);
 		(void) memcpy(buf, line, n);
+		
 		buf = (char *) buf + n;
 		nwritten += n;
 		len -= n;
@@ -110,7 +148,10 @@ read_dir(struct stream *stream, void *buf, size_t len)
 		nwritten += sizeof(footer);
 		stream->flags |= FLAG_CLOSED;
 	}
-
+#if defined(SHTTPD_MEM_IN_HEAP)
+	_shttpd_free(file);
+	_shttpd_free(line);
+#endif
 	return (nwritten);
 
 }
@@ -118,16 +159,19 @@ read_dir(struct stream *stream, void *buf, size_t len)
 static void
 close_dir(struct stream *stream)
 {
-	assert(stream->chan.dir.dirp != NULL);
-	assert(stream->chan.dir.path != NULL);
+	//assert(stream->chan.dir.dirp != NULL);
+	//assert(stream->chan.dir.path != NULL);
 	f_closedir(stream->chan.dir.dirp);
 	_shttpd_free(stream->chan.dir.path);
 }
 
+DIR          dirp;
 void
 _shttpd_get_dir(struct conn *c)
 {
     FRESULT iRet=0;
+    f_closedir(&dirp); 
+    c->loc.chan.dir.dirp=&dirp;
 	if ((iRet = f_opendir(c->loc.chan.dir.dirp,c->loc.chan.dir.path)) != 0) {
 		(void) _shttpd_free(c->loc.chan.dir.path);
 		_shttpd_send_server_error(c, 500, "Cannot open directory");

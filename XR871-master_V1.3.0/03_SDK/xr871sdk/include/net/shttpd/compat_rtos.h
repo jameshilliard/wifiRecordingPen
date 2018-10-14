@@ -77,6 +77,7 @@ void _shttpd_free(void *ptr);
 void *_shttpd_zalloc(size_t size);
 void _shttpd_init_local_file(struct usr_file *list,int count);
 int _shttpd_file_inFlash(const char *name);
+int _shttpd_getFp();
 #if defined(SHTTPD_THREADS)
 #define HTTP_THREAD_STACK_SIZE	(4 * 1024)
 #define _beginthread(a, b, c) do { \

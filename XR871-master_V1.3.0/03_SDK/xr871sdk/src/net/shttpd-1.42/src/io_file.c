@@ -93,6 +93,7 @@ read_file(struct stream *stream, void *buf, size_t len)
 	//assert(stream->chan.fd != -1);
 	if(stream->chan.fd_isflash!=0){
 	     UINT readbytes=0;
+	     _shttpd_elog(E_LOG, NULL, "%s fp=%x", __func__,stream->chan.fd);
 	     f_read((FIL *)stream->chan.fd, buf, len,&readbytes);
          return (readbytes);
 	}

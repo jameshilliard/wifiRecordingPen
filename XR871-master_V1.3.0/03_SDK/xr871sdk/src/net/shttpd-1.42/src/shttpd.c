@@ -659,15 +659,14 @@ decide_what_to_do(struct conn *c)
 #endif
 	if (get_path_info(c, path, &st) != 0) {
 		_shttpd_send_server_error(c, 404, "Not Found");
-
-	} else if (S_ISDIR(st.st_mode) && path[strlen(path) - 1] != '/') {
+    //} else if (S_ISDIR(st.st_mode) && path[strlen(path) - 1] != '/') {
+	} else if (0) {
 		(void) _shttpd_snprintf(buf, URI_MAX,
 			"Moved Permanently\r\nLocation: %s/", c->uri);
 		_shttpd_send_server_error(c, 301, buf);
 
-	} else if (S_ISDIR(st.st_mode) &&
-	    find_index_file(c, path, URI_MAX - 1, &st) == -1 &&
-	    !IS_TRUE(c->ctx, OPT_DIR_LIST)) {
+	//} else if (S_ISDIR(st.st_mode) && find_index_file(c, path, URI_MAX - 1, &st) == -1 && !IS_TRUE(c->ctx, OPT_DIR_LIST)) {
+    } else if (0) {
 		_shttpd_send_server_error(c, 403, "Directory Listing Denied");
 #if defined(SHTTPD_FS)
 	} else if (S_ISDIR(st.st_mode) && IS_TRUE(c->ctx, OPT_DIR_LIST)) {
@@ -696,7 +695,7 @@ decide_what_to_do(struct conn *c)
 	    if ((c->loc.chan.fh =(unsigned int)_shttpd_open(path, 0, 0)) == 0) {
 #else
         c->loc.chan.fd_isflash = _shttpd_file_inFlash(path);
-    	if ((c->loc.chan.fd = (int)_shttpd_open(path,0, 0)) == 0){ 
+    	if ((c->loc.chan.fd = (int)_shttpd_open(path,0, 0)) != -1){ 
 #endif
 			_shttpd_send_server_error(c, 500, "SSI open error");
 		} else {
@@ -706,7 +705,10 @@ decide_what_to_do(struct conn *c)
 #if defined(SHTTPD_FS)
 	//} else if (c->ch.ims.v_time && st.st_mtime <= c->ch.ims.v_time) {
 	//	_shttpd_send_server_error(c, 304, "Not Modified");
-	} else if ((c->loc.chan.fd = _shttpd_open(path,0, 0)) != -1) {
+	} else if ((c->loc.chan.fd = (int)_shttpd_open(path,0, 0)) != -1) {
+	    c->loc.chan.fd_isflash = _shttpd_file_inFlash(path);
+	    c->loc.chan.fd = (int)_shttpd_getFp();
+	    _shttpd_elog(E_LOG, NULL, "%s open %s c->loc.chan.fd=0x%x c->loc.chan.fd_isflash=%d", __func__,path,c->loc.chan.fd,c->loc.chan.fd_isflash);
 		_shttpd_get_file(c, &st);
 #else
 	}
@@ -1763,7 +1765,7 @@ static const struct opt {
 	{OPT_SSL_CERTIFICATE, "ssl_cert", "SSL certificate", NULL,set_ssl},
 #endif /* SHTTPD_SSL */
 	{OPT_PORTS, "ports", "Listening ports", NULL, set_ports},
-	{OPT_DIR_LIST, "dir_list", "Directory listing", "no", NULL},
+	{OPT_DIR_LIST, "dir_list", "Directory listing", "yes", NULL},
 #if defined(SHTTPD_CFG_URI)
 	{OPT_CFG_URI, "cfg_uri", "Config uri", NULL, set_cfg_uri},
 #endif /* SHTTPD_CFG_URI */
