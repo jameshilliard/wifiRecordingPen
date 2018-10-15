@@ -43,8 +43,8 @@
 #define SHTTPD_LOG_ALT
 #define SHTTPD_MEM_IN_HEAP
 //#define SHTTPD_SSL
-#define SHTTPD_CUSTOM_LOG_ON
-#define SHTTPD_DEBUG_ON
+//#define SHTTPD_CUSTOM_LOG_ON
+//#define SHTTPD_DEBUG_ON
 
 #include "kernel/os/os_time.h"
 #include <time.h>
