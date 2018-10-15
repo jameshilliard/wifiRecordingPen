@@ -89,7 +89,11 @@ read_dir(struct stream *stream, void *buf, size_t len)
 	struct stat	st;
 	struct conn	*c = stream->conn;
 	int		n, nwritten = 0;
-	const char	*slash = "/";
+	const char	*slash=NULL;
+	if(strcmp(stream->chan.dir.path,"/"))
+	    slash = "/";
+	else 
+	    slash = "";
     int   ret=0;
 	assert(stream->chan.dir.dirp != NULL);
 	assert(stream->conn->uri[0] != '\0');

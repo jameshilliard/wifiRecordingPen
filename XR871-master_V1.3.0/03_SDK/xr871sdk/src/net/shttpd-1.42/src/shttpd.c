@@ -522,6 +522,11 @@ static int
 get_path_info(struct conn *c, char *path, struct stat *stp)
 {
 	char	*p, *e;
+	if(!strcmp(path,"/")){
+	    stp->st_size = 0;
+	    stp->st_mode = _S_IFDIR;
+	    return (0);
+	}
 	if (_shttpd_stat(path, stp) == 0)
 		return (0);
 	p = path + strlen(path);
@@ -640,7 +645,7 @@ decide_what_to_do(struct conn *c)
 		} else if (c->rem.content_len == 0) {
 			_shttpd_send_server_error(c, 411, "Length Required");
 
-		} else if ((c->loc.chan.fd = _shttpd_open(path, O_WRONLY | O_BINARY |
+		} else if ((c->loc.chan.fd.fd = _shttpd_open(path, O_WRONLY | O_BINARY |
 		    O_CREAT | O_NONBLOCK | O_TRUNC, 0644)) == -1) {
 			_shttpd_send_server_error(c, 500, "PUT Error");
 
@@ -694,8 +699,8 @@ decide_what_to_do(struct conn *c)
 #if !defined(SHTTPD_FS)
 	    if ((c->loc.chan.fh =(unsigned int)_shttpd_open(path, 0, 0)) == 0) {
 #else
-        c->loc.chan.fd_isflash = _shttpd_file_inFlash(path);
-    	if ((c->loc.chan.fd = (int)_shttpd_open(path,0, 0)) != -1){ 
+        c->loc.chan.fd.fd_isflash = _shttpd_file_inFlash(path);
+    	if ((c->loc.chan.fd.fd = (int)_shttpd_open(path,0, 0)) == 0){ 
 #endif
 			_shttpd_send_server_error(c, 500, "SSI open error");
 		} else {
@@ -705,10 +710,8 @@ decide_what_to_do(struct conn *c)
 #if defined(SHTTPD_FS)
 	//} else if (c->ch.ims.v_time && st.st_mtime <= c->ch.ims.v_time) {
 	//	_shttpd_send_server_error(c, 304, "Not Modified");
-	} else if ((c->loc.chan.fd = (int)_shttpd_open(path,0, 0)) != -1) {
-	    c->loc.chan.fd_isflash = _shttpd_file_inFlash(path);
-	    c->loc.chan.fd = (int)_shttpd_getFp();
-	    _shttpd_elog(E_LOG, NULL, "%s open %s c->loc.chan.fd=0x%x c->loc.chan.fd_isflash=%d", __func__,path,c->loc.chan.fd,c->loc.chan.fd_isflash);
+	} else if ((c->loc.chan.fd.fd = (int)_shttpd_open(path,0, 0)) != 0) {
+	    c->loc.chan.fd.fd_isflash = _shttpd_file_inFlash(path);
 		_shttpd_get_file(c, &st);
 #else
 	}
@@ -1252,7 +1255,7 @@ multiplex_worker_sockets(const struct worker *worker, int *max_fd,
 #if !defined(SHTTPD_FS)
 			add_to_set(c->rem.chan.sock, read_set, max_fd);
 #else
-			add_to_set(c->rem.chan.fd, read_set, max_fd);
+			add_to_set(c->rem.chan.fd.fd, read_set, max_fd);
 #endif
 		}
 
@@ -1263,7 +1266,7 @@ multiplex_worker_sockets(const struct worker *worker, int *max_fd,
 		 */
 		if (io_space_len(&c->loc.io) && (c->loc.flags & FLAG_R) &&
 		    c->loc.io_class == &_shttpd_io_cgi)
-			add_to_set(c->loc.chan.fd, read_set, max_fd);
+			add_to_set(c->loc.chan.fd.fd, read_set, max_fd);
 
 		/*
 		 * If there is some data read from remote socket, and
@@ -1271,7 +1274,7 @@ multiplex_worker_sockets(const struct worker *worker, int *max_fd,
 		 */
 		if (io_data_len(&c->rem.io) && (c->loc.flags & FLAG_W) &&
 		    c->loc.io_class == &_shttpd_io_cgi)
-			add_to_set(c->loc.chan.fd, write_set, max_fd);
+			add_to_set(c->loc.chan.fd.fd, write_set, max_fd);
 #endif /* SHTTPD_CGI */
 
 		/*
@@ -1280,7 +1283,7 @@ multiplex_worker_sockets(const struct worker *worker, int *max_fd,
 		 */
 		if (io_data_len(&c->loc.io) && !(c->loc.flags & FLAG_SUSPEND)) {
 #if defined(SHTTPD_FS)
-			add_to_set(c->rem.chan.fd, write_set, max_fd);
+			add_to_set(c->rem.chan.fd.fd, write_set, max_fd);
 #else
 			add_to_set(c->rem.chan.sock, write_set, max_fd);
 #endif
@@ -1367,7 +1370,7 @@ process_worker_sockets(struct worker *worker, fd_set *read_set)
 		    ((c->loc.flags & FLAG_ALWAYS_READY)
 #if defined(SHTTPD_CGI)
 		    || (c->loc.io_class == &_shttpd_io_cgi &&
-		     FD_ISSET(c->loc.chan.fd, read_set))
+		     FD_ISSET(c->loc.chan.fd.fd, read_set))
 #endif /* SHTTPD_CGI */
 		    ));
 	}

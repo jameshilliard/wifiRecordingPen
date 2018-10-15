@@ -134,8 +134,10 @@ struct headers {
  */
 union channel {
 #if defined(SHTTPD_FS)
+struct {
 	int                  fd;            /* Regular static file */
 	int                  fd_isflash;            /* Regular static file */
+} fd; 
 #else
 	unsigned int         fh;            /* file handler */
 #endif

@@ -27,13 +27,10 @@ struct ssi_func {
 struct ssi_inc {
 	int		state;		/* Buffering state		*/
 	int		cond;		/* Conditional state		*/
-#if !defined(SHTTPD_FS)
-	char		*fp;
 	unsigned int	fl;
 	char		*cfp;
-#else
 	FIL		    *fp;		/* Icluded file stream		*/
-#endif
+    int		    fp_isflash;		/* Conditional state		*/
 	char		buf[CMDBUFSIZ];	/* SSI command buffer		*/
 	size_t		nbuf;		/* Bytes in a command buffer	*/
 #if !defined(SHTTPD_FS)
@@ -403,34 +400,22 @@ do_command(struct ssi *ssi, char *buf, size_t len, int *n)
 }
 
 static int
-read_ssi(struct stream *stream, void *vbuf, size_t len)
-{
+read_ssi_noinflash(struct stream *stream, void *vbuf, size_t len)
+{ 
 	struct ssi	*ssi = stream->conn->ssi;
 	struct ssi_inc	*inc = ssi->incs + ssi->nest;
 	char		*buf = vbuf;
 	TCHAR ch = EOF;
 	int n = 0;
-#if !defined(SHTTPD_FS)
-	if (inc->cfp == NULL)
-		inc->cfp = inc->fp;
-	char *fp = inc->cfp;
-
-#endif
 again:
-
 	if (inc->state == SSI_CALL)
 		do_call2(ssi, buf, len, &n);
 #if defined(SHTTPD_SSI_EXEC)
 	else if (inc->state == SSI_EXEC)
 		do_exec2(ssi, buf, len, &n);
 #endif
-#if defined(SHTTPD_FS)
     TCHAR* tpChar=0;
 	while (n + inc->nbuf < len && (tpChar= f_gets(&ch,1,(FIL *)inc->fp)) != NULL)
-#else
-	while (n + inc->nbuf < len && (ch = *fp++) != '\0')
-#endif
-
 		switch (inc->state) {
 
 		case SSI_PASS:
@@ -478,26 +463,111 @@ again:
 			abort();
 			break;
 		}
-#if defined(SHTTPD_FS)
 	if (ssi->nest > 0 && n + inc->nbuf < len && ch == EOF) {
-#else
-	if (ssi->nest > 0 && n + inc->nbuf < len && ch == '\0') {
-#endif
 		inc->fp = NULL;
 		//inc->cfp = NULL;
 		ssi->nest--;
 		inc--;
 		goto again;
 	}
-#if !defined(SHTTPD_FS)
+	return (n);
+}
+
+static int
+read_ssi_inflash(struct stream *stream, void *vbuf, size_t len)
+{
+	struct ssi	*ssi = stream->conn->ssi;
+	struct ssi_inc	*inc = ssi->incs + ssi->nest;
+	char		*buf = vbuf;
+	TCHAR ch = EOF;
+	int n = 0;
+	if (inc->cfp == NULL)
+		inc->cfp = (char *)inc->fp;
+	char *fp = inc->cfp;
+again:
+
+	if (inc->state == SSI_CALL)
+		do_call2(ssi, buf, len, &n);
+#if defined(SHTTPD_SSI_EXEC)
+	else if (inc->state == SSI_EXEC)
+		do_exec2(ssi, buf, len, &n);
+#endif
+
+	while (n + inc->nbuf < len && (ch = *fp++) != '\0')
+		switch (inc->state) {
+		case SSI_PASS:
+			if (ch == '<') {
+				inc->nbuf = 0;
+				inc->buf[inc->nbuf++] = ch;
+				inc->state = SSI_BUF;
+			} else if (inc->cond == SSI_GO) {
+				buf[n++] = ch;
+			}
+			break;
+
+		/*
+		 * We are buffering whole SSI command, until closing "-->".
+		 * That means that when do_command() is called, we can rely
+		 * on that full command with arguments is buffered in and
+		 * there is no need for streaming.
+		 * Restrictions:
+		 *  1. The command must fit in CMDBUFSIZ
+		 *  2. HTML comments inside the command ? Not sure about this.
+		 */
+		case SSI_BUF:
+			if (inc->nbuf >= sizeof(inc->buf) - 1) {
+				pass(inc, buf + n, &n);
+			} else if (ch == '>' &&
+			    !memcmp(inc->buf + inc->nbuf - 2, "--", 2)) {
+				do_command(ssi, buf + n, len - n, &n);
+				inc = ssi->incs + ssi->nest;
+			} else {
+				inc->buf[inc->nbuf++] = ch;
+
+				/* If not SSI tag, pass it */
+				if (inc->nbuf <= (size_t) st.len &&
+				    memcmp(inc->buf, st.ptr, inc->nbuf) != 0)
+					pass(inc, buf + n, &n);
+			}
+			break;
+
+		case SSI_EXEC:
+		case SSI_CALL:
+			break;
+
+		default:
+			/* Never happens */
+			abort();
+			break;
+		}
+	if (ssi->nest > 0 && n + inc->nbuf < len && ch == '\0') {
+		inc->fp = NULL;
+		//inc->cfp = NULL;
+		ssi->nest--;
+		inc--;
+		goto again;
+	}
 	inc->cfp += n;
 	if (ch == '\0') {
 		stream->flags |= FLAG_CLOSED;
 		//inc->cfp = NULL;
 		inc->fp = NULL;
 	}
-#endif
 	return (n);
+}
+
+static int
+read_ssi(struct stream *stream, void *vbuf, size_t len)
+{
+	struct ssi	*ssi = stream->conn->ssi;
+	struct ssi_inc	*inc = ssi->incs + ssi->nest;
+    
+	if(inc->fp_isflash==0){
+        return read_ssi_inflash(stream,vbuf,len);
+	}
+	else{
+        return read_ssi_noinflash(stream,vbuf,len);
+	}
 }
 
 static void
@@ -549,7 +619,14 @@ _shttpd_do_ssi(struct conn *c)
 		ssi->incs[0].fp = (char *)c->loc.chan.fh;
 		ssi->incs[0].fl = strlen((char *)(c->loc.chan.fh));
 #else
-        ssi->incs[0].fp =(FIL *)c->loc.chan.fd;;
+        ssi->incs[0].fp_isflash=c->loc.chan.fd.fd_isflash;
+        if(c->loc.chan.fd.fd_isflash==0){
+            ssi->incs[0].fp = (FIL *)c->loc.chan.fd.fd;
+            ssi->incs[0].fl = strlen((char *)(c->loc.chan.fd.fd));
+        }
+        else{
+            ssi->incs[0].fp =(FIL *)c->loc.chan.fd.fd;
+        }   
 #endif
 		ssi->conn = c;
 		c->ssi = ssi;

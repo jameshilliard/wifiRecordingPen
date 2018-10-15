@@ -196,13 +196,6 @@ int _shttpd_stat(const char *path, struct stat *stp)
 	return 0;
 }
 FIL fpNowFile;
-int _shttpd_getFp()
-{
-    int fd = (int)&fpNowFile;
-    _shttpd_elog(E_LOG, NULL, "%s succes fd=0x%x", __func__,fd);
-    return fd;
-}
-
 int _shttpd_open(const char *path, int flags, int mode)
 {
 	struct local *file;
@@ -213,16 +206,14 @@ int _shttpd_open(const char *path, int flags, int mode)
 		_shttpd_elog(E_LOG, NULL, "%s file path mismatch? open %s iRet=%d fpNowFile=%p", __func__,path,iRet,&fpNowFile);
 		if(iRet==FR_OK){
 		    int fd = (int)&fpNowFile;
-		    _shttpd_elog(E_LOG, NULL, "%s succes fd=0x%x", __func__,fd);
             return fd;
 		}
-		_shttpd_elog(E_LOG, NULL, "%s over", __func__);
-		return -1;
+		return 0;
 	}
 	if (file->mode == _S_IFREG)
 			return (int)file->body;
 		else
-			return -1;
+			return 0;
 }
 
 int _shttpd_remove(const char *path)

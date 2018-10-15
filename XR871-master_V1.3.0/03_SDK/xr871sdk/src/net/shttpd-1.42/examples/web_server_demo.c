@@ -39,12 +39,11 @@ struct shttpd_ap_info {
 extern int _shttpd_exit_flag;
 
 struct usr_file file_list[] = {
-	{"./",              ""},
-	{"./index.html",    index_html},
-	{"./config.shtml",  config_shtml},
+	{"/index.html",    index_html},
+	{"/config.shtml",  config_shtml},
 #if !defined(NO_CHECKSUM)
-	{"./checksum1.txt",  checksum1_txt},
-	{"./checksum2.txt",  checksum2_txt},
+	{"/checksum1.txt",  checksum1_txt},
+	{"/checksum2.txt",  checksum2_txt},
 #endif
 	{NULL},
 };

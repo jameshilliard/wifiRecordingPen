@@ -17,7 +17,7 @@ write_file(struct stream *stream, const void *buf, size_t len)
 	struct stat	st;
 	struct stream	*rem = &stream->conn->rem;
 #if defined(SHTTPD_FS)
-	int		n, fd = stream->chan.fd;
+	int		n, fd = stream->chan.fd.fd;
 	assert(fd != -1);
 	n = write(fd, buf, len);
 #else
@@ -58,7 +58,7 @@ read_file(struct stream *stream, void *buf, size_t len)
 	off_t		sent;
 
 	sock = stream->conn->rem.chan.sock;
-	fd = stream->chan.fd;
+	fd = stream->chan.fd.fd;
 
 	/* If this is the first call for this file, send the headers */
 	vec.iov_base = stream->io.buf;
@@ -90,17 +90,16 @@ read_file(struct stream *stream, void *buf, size_t len)
 	return (0);
 #endif /* USE_SENDFILE */
 #if defined(SHTTPD_FS)
-	//assert(stream->chan.fd != -1);
-	if(stream->chan.fd_isflash!=0){
+	//assert(stream->chan.fd.fd != -1);
+	if(stream->chan.fd.fd_isflash!=0){
 	     UINT readbytes=0;
-	     _shttpd_elog(E_LOG, NULL, "%s fp=%x", __func__,stream->chan.fd);
-	     f_read((FIL *)stream->chan.fd, buf, len,&readbytes);
+	     f_read((FIL *)stream->chan.fd.fd, buf, len,&readbytes);
          return (readbytes);
 	}
 	else{
     	int sent_length = 0;
     	sent_length = len;
-    	char *fp = (char *)stream->conn->loc.chan.fd;
+    	char *fp = (char *)stream->conn->loc.chan.fd.fd;
     	memcpy(buf, fp + stream->io.total, sent_length);
     	return sent_length;
 	}
@@ -117,12 +116,12 @@ static void
 close_file(struct stream *stream)
 {
 #if defined(SHTTPD_FS)
-	//assert(stream->chan.fd != -1);
-	if(stream->chan.fd_isflash!=0){
-	    (void) f_close((FIL *)stream->chan.fd);
+	//assert(stream->chan.fd.fd != -1);
+	if(stream->chan.fd.fd_isflash!=0){
+	    (void) f_close((FIL *)stream->chan.fd.fd);
 	}
 	else
-	    stream->conn->loc.chan.fd = 0;
+	    stream->conn->loc.chan.fd.fd = 0;
 #else
 	stream->conn->loc.chan.fh = 0;
 	//stream->conn->loc.chan.fi.filelength = 0;
@@ -150,7 +149,7 @@ _shttpd_get_file(struct conn *c, struct stat *stp)
 	    (n = sscanf(c->ch.range.v_vec.ptr,"bytes=%lu-%lu",&r1, &r2)) > 0) {
 		status = 206;
 #if defined(SHTTPD_FS)
-		(void) lseek(c->loc.chan.fd, r1, SEEK_SET);
+		(void) lseek(c->loc.chan.fd.fd, r1, SEEK_SET);
 #else
 		c->loc.io.total += r1;
 #endif
