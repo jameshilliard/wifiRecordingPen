@@ -174,7 +174,6 @@ int _shttpd_stat(const char *path, struct stat *stp)
 	 if (_shttpd_lookup_file(&file, path) != 0) {
 	 	FILINFO fno;
 		FRESULT  iRet=f_stat(path,&fno);
-		_shttpd_elog(E_LOG, NULL, "%s:file path %s match? f_stat=%d ", __func__,path,iRet);
 		if(iRet==FR_OK){
 		    stp->st_size = 0;
 		    if(fno.fattrib & AM_DIR)
@@ -183,7 +182,6 @@ int _shttpd_stat(const char *path, struct stat *stp)
 		        stp->st_mode = _S_IFREG;
         	if (stp->st_mode == _S_IFREG)
         		stp->st_size = fno.fsize;
-             _shttpd_elog(E_LOG, NULL, "%s:file path %s match stp->st_mode=0x%x", __func__,path,stp->st_mode);
             return 0;
 		}
 		return -1;
@@ -203,7 +201,6 @@ int _shttpd_open(const char *path, int flags, int mode)
 	if (_shttpd_lookup_file(&file, path) != 0) {
 		f_close(&fpNowFile);
 		FRESULT  iRet=f_open(&fpNowFile,path,FA_READ);
-		_shttpd_elog(E_LOG, NULL, "%s file path mismatch? open %s iRet=%d fpNowFile=%p", __func__,path,iRet,&fpNowFile);
 		if(iRet==FR_OK){
 		    int fd = (int)&fpNowFile;
             return fd;

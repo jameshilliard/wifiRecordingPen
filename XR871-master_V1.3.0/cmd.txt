@@ -26,6 +26,13 @@ net sta get psk
 net sta enable
 net sta disable
 
+
+sysinfo sta set ssid @PHICOMM_59
+sysinfo sta get ssid
+sysinfo sta set psk zmt123456
+sysinfo sta get psk
+
+
 net smartconfig start
 net smartconfig stop
 
@@ -36,6 +43,7 @@ net ifconfig up
 http://192.168.51.1/a/278299.mp4
 
 net mode ap
+net mode sta
 net ap config zss 12345678
 net ap get psk
 net httpd 1

@@ -116,7 +116,6 @@ read_dir(struct stream *stream, void *buf, size_t len)
 		ret=_shttpd_stat(file, &st);
 		if(ret!=0)
 		    continue;
-		DBG(("read_dir: %s", file));
 		if (S_ISDIR(st.st_mode)) {
 			_shttpd_snprintf(size,sizeof(size),"%s","&lt;DIR&gt;");
 		} else {

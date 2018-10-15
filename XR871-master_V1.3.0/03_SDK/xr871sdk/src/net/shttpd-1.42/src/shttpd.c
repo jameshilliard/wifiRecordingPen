@@ -1150,7 +1150,6 @@ add_to_set(int fd, fd_set *set, int *max_fd)
 static void
 process_connection(struct conn *c, int remote_ready, int local_ready)
 {
-	DBG(("process:remote_ready:%d,local_ready:%d\n",remote_ready,local_ready));
 	/* Read from remote end if it is ready */
 	if (remote_ready && io_space_len(&c->rem.io)) {
 		read_stream(&c->rem);
@@ -1159,10 +1158,10 @@ process_connection(struct conn *c, int remote_ready, int local_ready)
 	/* If the request is not parsed yet, do so */
 	if (!(c->rem.flags & FLAG_HEADERS_PARSED))
 		parse_http_request(c);
-	DBG(("loc: %d [%.*s]", (int) io_data_len(&c->loc.io),
-	    (int) io_data_len(&c->loc.io), io_data(&c->loc.io)));
-	DBG(("rem: %d [%.*s]", (int) io_data_len(&c->rem.io),
-	    (int) io_data_len(&c->rem.io), io_data(&c->rem.io)));
+	//DBG(("loc: %d [%.*s]", (int) io_data_len(&c->loc.io),
+	//   (int) io_data_len(&c->loc.io), io_data(&c->loc.io)));
+	//DBG(("rem: %d [%.*s]", (int) io_data_len(&c->rem.io),
+	//    (int) io_data_len(&c->rem.io), io_data(&c->rem.io)));
 
 	/* Read from the local end if it is ready */
 	if (local_ready && io_space_len(&c->loc.io)) {
@@ -1171,12 +1170,10 @@ process_connection(struct conn *c, int remote_ready, int local_ready)
 
 	if (io_data_len(&c->rem.io) > 0 && (c->loc.flags & FLAG_W) &&
 	    c->loc.io_class != NULL && c->loc.io_class->io_write != NULL) {
-	    	DBG(("process:write stream.(rem to loc)\n"));
 		write_stream(&c->rem, &c->loc);
 	}
 
 	if (io_data_len(&c->loc.io) > 0 && c->rem.io_class != NULL) {
-		DBG(("process:write stream.(loc to rem)\n"));
 		write_stream(&c->loc, &c->rem);
 	}
 
