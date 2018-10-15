@@ -91,7 +91,8 @@ static struct cmd_data g_main_cmds[] = {
 	{ "cedarx",	cmd_cedarx_exec},
 	{ "fs", 	cmd_fs_exec },
 	{ "audio", 	cmd_audio_exec },
-	{ "auddbg", 	cmd_auddbg_exec },
+	{ "auddbg", cmd_auddbg_exec },
+	{ "sysinfo",cmd_sysinfo_exec },
 };
 
 void main_cmd_exec(char *cmd)
