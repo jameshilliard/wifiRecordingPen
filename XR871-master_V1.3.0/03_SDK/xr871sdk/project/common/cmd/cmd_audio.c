@@ -346,7 +346,7 @@ static enum cmd_status audio_end_task(char *arg)
  * example
  *		audio cap 16000 1 record.pcm
  *		audio play 44100 2 music.pcm
- *      audio vol 12
+ *      audio vol 1 12
  *		audio path	1 1
  *		audio end
  */

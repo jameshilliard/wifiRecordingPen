@@ -35,6 +35,7 @@ extern "C" {
 #endif
 
 enum cmd_status cmd_httpc_exec(char *cmd);
+int httpc_cmd_self(void *arg,char *cmdResponse);
 
 #ifdef __cplusplus
 }

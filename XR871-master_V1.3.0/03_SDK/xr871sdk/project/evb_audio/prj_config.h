@@ -66,7 +66,7 @@ extern "C" {
 #define PRJCONF_IMG_ADDR                0x00000000
 
 /* image max size, including bootloader */
-#define PRJCONF_IMG_MAX_SIZE            ((1024 - 4) * 1024)
+#define PRJCONF_IMG_MAX_SIZE            ((2048 - 4) * 1024)
 
 /* save sysinfo to flash or not */
 #define PRJCONF_SYSINFO_SAVE_TO_FLASH	1

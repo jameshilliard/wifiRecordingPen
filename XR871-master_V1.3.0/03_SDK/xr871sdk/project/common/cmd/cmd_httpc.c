@@ -49,7 +49,7 @@ static char HTTPC_cal_checksum(void *buffer, int length)
 
 static unsigned char checksum = 0;
 static int checksum_flag = 0;
-static int HTTPC_get_test(HTTPParameters *clientParams)
+static int HTTPC_get_test(HTTPParameters *clientParams,char *response)
 {
 	int nRetCode = 0;
 	int recvSize = 0;
@@ -61,7 +61,8 @@ static int HTTPC_get_test(HTTPParameters *clientParams)
 		nRetCode = HTTPC_get(clientParams,buf, 4096,(INT32 *)&recvSize);
 		if (checksum_flag == 1)
 			checksum += HTTPC_cal_checksum(buf,recvSize);
-
+        if(response)
+            memcpy(response,buf,HTTP_CLIENT_BUFFER_SIZE);
 		if (nRetCode != HTTP_CLIENT_SUCCESS)
 		break;
 	} while(1);
@@ -221,7 +222,7 @@ void* get_heads()
 	return headers;
 }
 #endif
-static int HTTPC_post_test(HTTPParameters *clientParams, char *credentials)
+static int HTTPC_post_test(HTTPParameters *clientParams, char *credentials,char *cmdRespone)
 {
 	int ret = 0;
 	unsigned int toReadLength = 4096;
@@ -277,7 +278,7 @@ request:
 		do {
 			memset(buf, 0, 4096);
 			if ((ret = HTTPC_read(clientParams, buf, toReadLength, (void *)&Received)) != 0) {
-				//CMD_DBG("get data,Received:%d\n",Received);
+				CMD_DBG("get data,Received:%d\n",Received);
 				if (ret == 1000) {
 					ret = 0;
 					CMD_DBG("The end..\n");
@@ -286,7 +287,8 @@ request:
 
 				if (checksum_flag == 1)
 					checksum += HTTPC_cal_checksum(buf,Received);
-
+				if(cmdRespone)
+                    memcpy(cmdRespone,buf,4096);
 				break;
 			} else {
 				//CMD_DBG("get data,Received:%d\n",Received);
@@ -306,7 +308,7 @@ static int HTTPC_head_test(HTTPParameters *clientParams)
 {
 	return 0;
 }
-static int httpc_exec(char *cmd)
+static int httpc_exec(char *cmd,char *cmdResponse)
 {
 	//CMD_DBG("HTTPC TEST %s\n",cmd);
 	int ret = -1;
@@ -336,7 +338,7 @@ static int httpc_exec(char *cmd)
 
 	strcpy(clientParams->Uri,argv[1]);
 	if (cmd_strncmp(argv[0],"get",3) == 0) {
-		if ((ret = HTTPC_get_test(clientParams)) != 0)
+		if ((ret = HTTPC_get_test(clientParams,cmdResponse)) != 0)
 			goto releaseParams;
 	} else if (cmd_strncmp(argv[0], "post", 4) == 0) {
 		if (argc < 3) {
@@ -344,7 +346,7 @@ static int httpc_exec(char *cmd)
 			ret = -1;
 			goto releaseParams;
 		}
-		if ((ret = HTTPC_post_test(clientParams, argv[2])) != 0)
+		if ((ret = HTTPC_post_test(clientParams, argv[2],cmdResponse)) != 0)
 			goto releaseParams;
 
 	} else if (cmd_strncmp(argv[0], "-get", 4) == 0) {
@@ -379,7 +381,7 @@ static int httpc_exec(char *cmd)
 			ret = -1;
 			goto releaseParams;
 		}
-		if ((ret = HTTPC_post_test(clientParams, argv[2])) != 0)
+		if ((ret = HTTPC_post_test(clientParams, argv[2],NULL)) != 0)
 			goto releaseParams;
 	}else if (cmd_strncmp(argv[0], "muti-get", 8) == 0) {
 		if (argc < 3) {
@@ -418,7 +420,7 @@ void httpc_cmd_task(void *arg)
 {
 	char *cmd = (char *)arg;
 	CMD_LOG(1, "<net> <httpc> <request> <cmd : %s>\n",cmd);
-	int ret = httpc_exec(cmd);
+	int ret = httpc_exec(cmd,NULL);
 	if (ret != 0 && ret != 1000)
 		CMD_LOG(1, "<net> <httpc> <response : fail> <%s>\n",cmd);
 	else {
@@ -426,6 +428,20 @@ void httpc_cmd_task(void *arg)
 	}
 	cmd_free(arg_buf);
 	OS_ThreadDelete(&g_httpc_thread);
+}
+
+int httpc_cmd_self(void *arg,char *cmdResponse)
+{
+	char *cmd = (char *)arg;
+	CMD_LOG(1, "<net> <httpc> <request> <cmd : %s>\n",cmd);
+	int ret = httpc_exec(cmd,cmdResponse);
+	if (ret != 0 && ret != 1000){
+        CMD_LOG(1, "<net> <httpc> <response : fail> <%s>\n",cmd);
+        return -1;
+	}
+	
+	CMD_LOG(1, "<net> <httpc> <response : success> <%s>\n",cmd);
+	return 0;
 }
 
 enum cmd_status cmd_httpc_exec(char *cmd)

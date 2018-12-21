@@ -44,7 +44,7 @@ extern "C" {
 #define CONSOLE_ECHO_EN     0 /* enable/disable console echo */
 
 /** @brief type define of console command executing function */
-typedef void (*console_cmd_exec_func)(char *cmd);
+typedef int (*console_cmd_exec_func)(char *cmd);
 
 typedef struct console_param {
     UART_ID uart_id;                /* console's uart ID */

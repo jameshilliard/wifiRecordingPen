@@ -32,7 +32,7 @@
 
 #define COMMAND_IPERF	1
 #define COMMAND_PING	1
-
+#define COMMAND_HTTPC   1
 /*
  * net commands
  */
@@ -43,6 +43,9 @@ static struct cmd_data g_net_cmds[] = {
 	{ "airkiss",	cmd_airkiss_exec },
 	{ "voiceprint",	cmd_voice_print_exec },
 	{ "smartlink",	cmd_smartlink_exec },
+#if COMMAND_HTTPC
+	{ "httpc",		cmd_httpc_exec },
+#endif	
 #if COMMAND_IPERF
 	{ "iperf",		cmd_iperf_exec },
 #endif
@@ -84,23 +87,46 @@ static struct cmd_data g_main_cmds[] = {
 	{ "fs", 	cmd_fs_exec },
 	{ "audio", 	cmd_audio_exec },
 	{ "auddbg", 	cmd_auddbg_exec },
+	{ "sysinfo",cmd_sysinfo_exec },
 };
+#if 0
+static void dumpHex(const char* data,int len)
+{
+	char *msgBuffer=malloc(1024);
+	if(msgBuffer==NULL)
+	    return;
+	char msgSinglebuffer[16]={0};
+	int i=0;
+	memset(msgBuffer,0,1024);
+	for(i = 0; i< len;i++){
+		sprintf(msgSinglebuffer,"0x%02x ",*data++);
+		strcat(msgBuffer,msgSinglebuffer);
+		if(strlen(msgBuffer)>(1024-32))
+			break;
+	}
+	CMD_LOG(CMD_DBG_ON, "%s\n",msgBuffer);
+	CMD_LOG(CMD_DBG_ON, "message len=%d\n",len);
+	if(msgBuffer)
+	    free(msgBuffer);
+}
+#endif
 
-void main_cmd_exec(char *cmd)
+int main_cmd_exec(char *cmd)
 {
 	enum cmd_status status;
 
 	if (cmd[0] == '\0') { /* empty command */
 		CMD_LOG(1, "$\n");
-		return;
+		return -1;
 	}
-
+    
 	CMD_LOG(CMD_DBG_ON, "$ %s\n", cmd);
-
+    //dumpHex(cmd,strlen(cmd));
 	status = cmd_exec(cmd, g_main_cmds, cmd_nitems(g_main_cmds));
 	if (status == CMD_STATUS_ACKED) {
-		return; /* already acked, just return */
+		return status; /* already acked, just return */
 	}
 
 	cmd_write_respond(status, cmd_get_status_desc(status));
+	return status;
 }

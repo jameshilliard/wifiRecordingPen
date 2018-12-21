@@ -176,13 +176,15 @@ static int CallbackForAwPlayer(void* pUserData, int msg, int ext1, void* param)
     return 0;
 }
 
+#if DEBUG_MNT_SDCARD 
 static uint8_t cedarx_inited = 0;
-static DemoPlayerContext *demoPlayer;
+#endif
+static DemoPlayerContext *demoPlayer=NULL;
 
 static enum cmd_status cmd_cedarx_create_exec(char *cmd)
 {
     demoPlayer = malloc(sizeof(*demoPlayer));
-
+    #if DEBUG_MNT_SDCARD 
 	if (cedarx_inited++ == 0) {
 		if (fs_ctrl_mount(FS_MNT_DEV_TYPE_SDCARD, 0) != 0) {
 			printf("mount fail\n");
@@ -191,7 +193,7 @@ static enum cmd_status cmd_cedarx_create_exec(char *cmd)
 			printf("mount success\n");
 		}
 	}
-
+    #endif
     //* create a player.
     memset(demoPlayer, 0, sizeof(DemoPlayerContext));
     //sem_init(&demoPlayer->mPrepared, 0, 0);
@@ -226,7 +228,10 @@ static enum cmd_status cmd_cedarx_create_exec(char *cmd)
 }
 
 static enum cmd_status cmd_cedarx_destroy_exec(char *cmd)
-{
+{ 
+    if(demoPlayer==NULL)
+        return CMD_STATUS_OK;
+        
     if(demoPlayer->mAwPlayer != NULL)
     {
         XPlayerDestroy(demoPlayer->mAwPlayer);
@@ -235,13 +240,15 @@ static enum cmd_status cmd_cedarx_destroy_exec(char *cmd)
     printf("destroy AwPlayer.\n");
 
     //sem_destroy(&demoPlayer->mPrepared);
-
+    #if DEBUG_MNT_SDCARD 
 	if (--cedarx_inited == 0) {
 		if (fs_ctrl_unmount(FS_MNT_DEV_TYPE_SDCARD, 0) != 0) {
 			printf("unmount fail\n");
 		}
 	}
-	free(demoPlayer);
+	#endif
+	if(demoPlayer)
+	    free(demoPlayer);
 
     return CMD_STATUS_OK;
 }
@@ -328,14 +335,14 @@ static enum cmd_status cmd_cedarx_rec_exec(char *cmd)
 			printf("do not support this encode type\n");
 			return CMD_STATUS_INVALID_ARG;
 		}
-
+        #if DEBUG_MNT_SDCARD 
 		if (cedarx_inited++ == 0) {
 			if (fs_ctrl_mount(FS_MNT_DEV_TYPE_SDCARD, 0) != 0) {
 				printf("mount fail\n");
 				return -1;
 			}
 		}
-
+        #endif
 		xrecord = XRecordCreate();
 		if (xrecord == NULL)
 			printf("create success\n");
@@ -368,13 +375,13 @@ static enum cmd_status cmd_cedarx_end_exec(char *cmd)
 	printf("record stop\n");
 	XRecordDestroy(xrecord);
 	printf("record destroy\n");
-
+    #if DEBUG_MNT_SDCARD 
 	if (--cedarx_inited == 0) {
 		if (fs_ctrl_unmount(FS_MNT_DEV_TYPE_SDCARD, 0) != 0) {
 			printf("unmount fail\n");
 		}
 	}
-
+    #endif
 	return CMD_STATUS_OK;
 }
 

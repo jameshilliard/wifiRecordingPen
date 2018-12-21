@@ -239,6 +239,7 @@ __weak void platform_init_level1(void)
 #endif
 
 #if PRJCONF_PM_EN
+    printf("pm_mode_platform_selec 0x%x\n\n", PRJCONF_PM_MODE);
 	pm_mode_platform_select(PRJCONF_PM_MODE);
 #endif
 

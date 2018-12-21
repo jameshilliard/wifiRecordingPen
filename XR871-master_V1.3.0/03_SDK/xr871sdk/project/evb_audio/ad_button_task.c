@@ -34,7 +34,7 @@
 #include "ad_button_task.h"
 
 
-#define AD_BUTTON_CTRL_DBG		0
+#define AD_BUTTON_CTRL_DBG		1
 #define LOG(flags, fmt, arg...)	\
 	do {								\
 		if (flags) 						\
@@ -53,17 +53,20 @@
 #define AD_VALUE_DEVAATION 50
 
 static AD_Button_Config AD_Button_Cfg = {
-	ADC_CHANNEL_1,
+	ADC_CHANNEL_2,
 	ADC_IRQ_LOW,
-	3000,
-	3500,
+	3200,
+	3700,
 };
 
 
 typedef enum {
-	AD_BUTTON_0_VALUE = 2753,
-	AD_BUTTON_1_VALUE = 1750,
-	AD_BUTTON_2_VALUE = 829,
+	AD_BUTTON_0_VALUE = 2960,
+	AD_BUTTON_1_VALUE = 2448,
+	AD_BUTTON_2_VALUE = 1947,
+	AD_BUTTON_3_VALUE = 1520,
+	AD_BUTTON_4_VALUE = 980,
+	AD_BUTTON_5_VALUE = 477,
 	AD_BUTTON_VALUE_NULL = -1,
 }AD_BUTTON_VALUE;
 
@@ -81,12 +84,15 @@ typedef struct {
 	AD_BUTTON_ID	button_Id;
 }AD_Button_Info;
 
-AD_Button_RepeatPressMode Ad_Button_2_Repeat = {700, 10};
+AD_Button_RepeatPressMode Ad_Button_5_Repeat = {700, 10};
 
 AD_Button_Info AD_Button_Register[AD_BUTTON_NUM] = {
 	{NULL, 0, 10, AD_BUTTON_0_VALUE, AD_BUTTON_0},
 	{NULL, 0, 10, AD_BUTTON_1_VALUE, AD_BUTTON_1},
-	{&Ad_Button_2_Repeat, 0, 10, AD_BUTTON_2_VALUE, AD_BUTTON_2},
+	{NULL, 0, 10, AD_BUTTON_2_VALUE, AD_BUTTON_2},
+	{NULL, 0, 10, AD_BUTTON_3_VALUE, AD_BUTTON_3},
+	{NULL, 0, 10, AD_BUTTON_4_VALUE, AD_BUTTON_4},
+	{&Ad_Button_5_Repeat, 0, 10, AD_BUTTON_5_VALUE, AD_BUTTON_5},
 };
 
 static AD_Button_Cmd_Info AD_Button_Cmd;

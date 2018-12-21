@@ -6,7 +6,7 @@
 # config options
 # ----------------------------------------------------------------------------
 # support both sta and ap
-__PRJ_CONFIG_WLAN_STA_AP ?= y
+__PRJ_CONFIG_WLAN_STA_AP ?= n
 
 # support xplayer
 __PRJ_CONFIG_XPLAYER ?= n

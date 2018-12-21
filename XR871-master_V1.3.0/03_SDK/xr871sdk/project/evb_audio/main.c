@@ -29,13 +29,43 @@
 
 #include "common/framework/platform_init.h"
 #include "audio_player.h"
+#include "command.h"
+#include "wifi_manage.h"
+#include "rtp_server.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "http_player.h"
+
+void initGpio()
+{
+    //PB13:audio¿ØÖÆÒý½Å
+    //mem w32 0x40050028 0x00100000
+    //mem w32 0x40050034 0x00002000
+    //AD:PA11 CH3
+    //mem r32 0x40050004 4
+    //mem w32 0x40050004 0x44440000
+    char cmdStr[512]={0};
+    sprintf(cmdStr,"mem w32 0x40050028 0x00100000");
+    main_cmd_exec(cmdStr);
+    sprintf(cmdStr,"mem w32 0x40050034 0x00002000");
+    main_cmd_exec(cmdStr);
+    sprintf(cmdStr,"mem w32 0x40050004 0x44440000");
+    main_cmd_exec(cmdStr);
+}
 
 int main(void)
 {
 	platform_init();
-
-	gpio_button_ctrl_init();
+	//gpio_button_ctrl_init();
+    //player_task_init();
+    //main_cmd_exec("net sta enable");
+    //player_task_init();
+    initGpio();
 	ad_button_init();
-	player_task_init();
+	wifi_task_init();
+	rtp_server_task_init();
+	http_player_task_init();
+	
 	return 0;
 }
