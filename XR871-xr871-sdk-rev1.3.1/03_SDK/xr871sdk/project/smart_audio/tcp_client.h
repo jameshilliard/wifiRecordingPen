@@ -13,14 +13,14 @@
 	} while (0)
 
 #define TCP_CLIENT_TRACK_INFO(fmt, arg...)	\
-			TCP_CLIENT(TCP_CLIENT_INFO, "[TCP CLIENT TRACK] %s():%d "fmt, \
+			TCP_CLIENT(TCP_CLIENT_INFO, "[TCP CLIENT I] %20s():%04d "fmt, \
 															__func__, __LINE__, ##arg)
 #define TCP_CLIENT_TRACK_WARN(fmt, arg...)	\
-			TCP_CLIENT(TCP_CLIENT_WARN, "[TCP CLIENT WARN] %s():%d "fmt, \
+			TCP_CLIENT(TCP_CLIENT_WARN, "[TCP CLIENT W] %20s():%04d "fmt, \
 															__func__, __LINE__, ##arg)
 
 #define TCP_CLIENT_THREAD_STACK_SIZE	1024*2
-#define TCP_SEND_DATA_MAX_LEN    (1344)
+#define TCP_SEND_DATA_MAX_LEN    (1300)
 enum    TCP_CLIENT_STATE{
     STATE_TCP_CLINET_CLOSING       = 0, 
     STATE_TCP_CLINET_CONNECT       = 1, 

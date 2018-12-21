@@ -18,7 +18,6 @@
 #include "rtp_server.h"
 #include "http_player.h"
 #include "fs/fatfs/ff.h"
-#include "encode.h"
 
 #define WAVE_FORMAT_PCM 	1
 struct client
@@ -354,19 +353,18 @@ int tcp_client_connect(const char *destipStr, uint16_t port)
     memset(&tcpClient,0,sizeof(tcpClient));
     sscanf(destipStr,"%d.%d.%d.%d",(int *)destip, (int *)(destip+1),(int *)(destip+2), (int *)(destip+3));
     client_pcb = tcp_new();
-    //client_pcb->so_options |= SOF_KEEPALIVE;
-    //client_pcb->keep_idle = 50000;	   // ms
-   // client_pcb->keep_intvl = 10000;	   // ms
-   // client_pcb->keep_cnt = 5;  
+    client_pcb->so_options |= SOF_KEEPALIVE;
+    client_pcb->keep_idle = 50000;	   // ms
+    client_pcb->keep_intvl = 10000;	   // ms
+    client_pcb->keep_cnt = 5;  
     if(client_pcb != NULL){
         IP4_ADDR( &DestIPaddr, *destip, *(destip+1),*(destip+2), *(destip+3) );
         err = tcp_connect(client_pcb,&DestIPaddr,port,tcp_client_connected);
-        TCP_CLIENT_TRACK_INFO("connect ip=%d.%d.%d.%d,port %d",*destip, *(destip+1),*(destip+2), *(destip+3),port);
         tcp_err(client_pcb,tcp_errfun);
         tcpClient.sendLastAliveTime = OS_JiffiesToMSecs(OS_GetJiffies());
         tcpClient.recvLastAliveTime = tcpClient.sendLastAliveTime;
     }
-    TCP_CLIENT_TRACK_INFO("tcp_client_connected be called err=%d tcpClient.state=%d\n",err,tcpClient.state);
+    TCP_CLIENT_TRACK_INFO("connect ip=%d.%d.%d.%d,port %d,err=%d,state=%d\n",*destip, *(destip+1),*(destip+2), *(destip+3),port,err,tcpClient.state);
     return (int)err;
 }
 
@@ -375,7 +373,7 @@ err_t tcp_client_send(struct tcp_pcb *tpcb, struct client *tcpClient)
     struct pbuf *ptr;
     err_t wr_err = ERR_OK;
     
-    TCP_CLIENT_TRACK_INFO("wr_err=%d tcpClient->p_tx=%p tcpClient->p_tx->len=%d,tcp_sndbuf(tpcb)=%d\n",
+    TCP_CLIENT_TRACK_INFO("wr_err=%d,p_tx=%p,len=%d,snd_buf=%d\n",
                            wr_err,tcpClient->p_tx,tcpClient->p_tx->len,tcp_sndbuf(tpcb));
     
     while ((wr_err == ERR_OK) && (tcpClient->p_tx != NULL) && (tcpClient->p_tx->len <= tcp_sndbuf(tpcb)))
@@ -383,7 +381,7 @@ err_t tcp_client_send(struct tcp_pcb *tpcb, struct client *tcpClient)
         /* get pointer on pbuf from tcpClient structure */
         ptr = tcpClient->p_tx;
         wr_err = tcp_write(tpcb, ptr->payload, ptr->len, TCP_WRITE_FLAG_COPY);
-        TCP_CLIENT_TRACK_INFO("tcp_write ptr->len=%d wr_err=%d\n", ptr->len,wr_err);
+        //TCP_CLIENT_TRACK_INFO("tcp_write ptr->len=%d wr_err=%d\n", ptr->len,wr_err);
         //dumpHex((char*)ptr->payload,ptr->len);
         if (wr_err == ERR_OK){ 
             tcp_output(tpcb);
@@ -434,12 +432,12 @@ int sendLoginData(const char *m_szCameraID)
     msgLogin.endChar = 0;
     iRet = tcp_send_message((char*)&msgLogin, sizeof(struct TMSG_CAPLOGIN));
     if (iRet < 0){
-        TCP_CLIENT_TRACK_WARN("msg login fail %s!\n", m_szCameraID);
+        TCP_CLIENT_TRACK_WARN("msg: login fail %s,iRet=%d\n",m_szCameraID,iRet);
         return -1;
     } 
     else
     {
-       TCP_CLIENT_TRACK_INFO("msg: login success %s,send %d bytes\n",m_szCameraID, iRet);
+       TCP_CLIENT_TRACK_INFO("msg: login success %s,send %d bytes\n",m_szCameraID,sizeof(struct TMSG_CAPLOGIN));
        return 0;
     }     
 }
@@ -456,12 +454,12 @@ int sendAliveData(const char *m_szCameraID)
     msKeepAlive.endChar = 0;
     iRet = tcp_send_message((char*)&msKeepAlive, sizeof(struct TMSG_KEEPALIVE));
     if (iRet < 0){
-        TCP_CLIENT_TRACK_WARN("msg alive fail %s!\n", m_szCameraID);
+        TCP_CLIENT_TRACK_WARN("msg: alive fail %s,iRet=%d\n", m_szCameraID,iRet);
         return -1;
     } 
     else
     {
-       TCP_CLIENT_TRACK_INFO("msg: alive success %s,send %d bytes\n",m_szCameraID, iRet);
+       TCP_CLIENT_TRACK_INFO("msg: alive success %s,send %d bytes\n",m_szCameraID, sizeof(struct TMSG_KEEPALIVE));
        return 0;
     }         
 }
@@ -527,12 +525,12 @@ int sendAudioData(const char *audioBuffer,int length,int flag,int type)
     bytSendAudioBuf[iSendAudioLen++] = 0x00;
     int iRet = tcp_send_message((char*)bytSendAudioBuf,iSendAudioLen);
     if(iRet < 0){
-        TCP_CLIENT_TRACK_WARN("RtpIntelligentSendAudioData fail!\n");
+        TCP_CLIENT_TRACK_WARN("msg: audio fail,iRet=%d\n",iRet);
         iRet=-1;
     } 
     else
     {
-		TCP_CLIENT_TRACK_INFO("RtpIntelligentSendAudioData success,send %d bytes\n",iSendAudioLen);
+		TCP_CLIENT_TRACK_INFO("msg: audio success,send %d bytes\n",iSendAudioLen);
 		iRet=0;
     }  
 	return iRet;
@@ -547,7 +545,6 @@ int pushPcmAudioData(const char *audioBuffer,int length,int flag,int type)
             memcpy(amrAudioBuf+amrSumLength,audioBuffer,length);
             amrSumLength=amrSumLength+length;
         }    
-        //encodePcmToSpeex(audioBuffer,length,speexBuffer,512,&outLength);
     }
     return 0;
 }
@@ -560,7 +557,6 @@ int sendTcpClientStatus(uint8_t status)
     {
         memcpy(amrAudioBuf,amrHeader,sizeof(amrHeader));
         amrSumLength=sizeof(amrHeader);
-        dumpHex(amrAudioBuf,6);
     }
     return tcpClientStatus;
 }
@@ -601,14 +597,13 @@ void tcp_client_speex_task(void *arg)
     int iRet=0;
     int i=0;
     int length=0;
-	TCP_CLIENT_TRACK_INFO("tcp client task start\n");
 	tcpClientStatus=0;
 	amrSumLength=0;
     msgPacket=malloc(MAX_PACKET_LENGTH);
     bytSendAudioBuf=malloc(MAX_PACKET_LENGTH);
     amrAudioBuf=malloc(20*1024);
     speexBuffer=malloc(512);
-    //initEncodeModule();
+    TCP_CLIENT_TRACK_INFO("tcp client task start\n");
 	while (tcp_client_task_run) 
 	{
 		switch(tcpClientStatus)
@@ -636,7 +631,7 @@ void tcp_client_speex_task(void *arg)
                         }
                         if(iRet!=ERR_OK)
 	                    {
-	                        TCP_CLIENT_TRACK_WARN("error!iRet=%d i=%d\n",iRet,i);
+	                        TCP_CLIENT_TRACK_WARN("msg: sendAudioData fail,iRet=%d,i=%d\n",iRet,i);
 	                    }
                     }
 			    }
@@ -652,7 +647,7 @@ void tcp_client_speex_task(void *arg)
 				OS_MSleep(100);
 				break;
 		}
-		if(tcpClientStatus!=2)
+		if(tcpClientStatus!=2 && tcpClientStatus!=4)
 		    OS_MSleep(100);
 	}
 	if(msgPacket)

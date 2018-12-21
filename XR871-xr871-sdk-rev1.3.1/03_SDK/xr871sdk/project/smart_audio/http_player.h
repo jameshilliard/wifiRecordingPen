@@ -11,10 +11,10 @@
 	} while (0)
 
 #define HTTP_PLAYER_TRACK_INFO(fmt, arg...)	\
-			HTTP_PLAYER(HTTP_PLAYER_INFO, "[HTTP PLAYER TRACK] %s():%d "fmt, \
+			HTTP_PLAYER(HTTP_PLAYER_INFO, "[HTP PLAYER I] %20s():%04d "fmt, \
 															__func__, __LINE__, ##arg)
 #define HTTP_PLAYER_TRACK_WARN(fmt, arg...)	\
-			HTTP_PLAYER(HTTP_PLAYER_WARN, "[HTTP PLAYER WARN] %s():%d "fmt, \
+			HTTP_PLAYER(HTTP_PLAYER_WARN, "[HTP PLAYER W] %20s():%04d "fmt, \
 															__func__, __LINE__, ##arg)
 
 #define HTTP_PLAYER_THREAD_STACK_SIZE	1024*2

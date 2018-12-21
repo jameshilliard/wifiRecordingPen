@@ -13,10 +13,10 @@
 	} while (0)
 
 #define RTP_SERVER_TRACK_INFO(fmt, arg...)	\
-			RTP_SERVER(RTP_SERVER_INFO, "[RTP SERVER TRACK] %s():%d "fmt, \
+			RTP_SERVER(RTP_SERVER_INFO, "[RTP SERVER I] %20s():%04d "fmt, \
 															__func__, __LINE__, ##arg)
 #define RTP_SERVER_TRACK_WARN(fmt, arg...)	\
-			RTP_SERVER(RTP_SERVER_WARN, "[RTP SERVER WARN] %s():%d "fmt, \
+			RTP_SERVER(RTP_SERVER_WARN, "[RTP SERVER W] %20s():%04d "fmt, \
 															__func__, __LINE__, ##arg)
 
 #define RTP_SERVER_THREAD_STACK_SIZE	1024*2

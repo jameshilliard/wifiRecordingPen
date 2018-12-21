@@ -14,10 +14,10 @@
 	} while (0)
 
 #define WIFI_MANAGE_TRACK_INFO(fmt, arg...)	\
-			WIFI_MANAGE(WIFI_MANAGE_INFO, "[WIFI MANAGE TRACK] %s():%d "fmt, \
+			WIFI_MANAGE(WIFI_MANAGE_INFO, "[WIFI MANAGE I] %20s():%04d "fmt, \
 															__func__, __LINE__, ##arg)
 #define WIFI_MANAGE_TRACK_WARN(fmt, arg...)	\
-			WIFI_MANAGE(WIFI_MANAGE_WARN, "[WIFI MANAGE WARN] %s():%d "fmt, \
+			WIFI_MANAGE(WIFI_MANAGE_WARN, "[WIFI MANAGE W] %20s():%04d "fmt, \
 															__func__, __LINE__, ##arg)
 
 #define WIFI_MANAGE_THREAD_STACK_SIZE	1024*2

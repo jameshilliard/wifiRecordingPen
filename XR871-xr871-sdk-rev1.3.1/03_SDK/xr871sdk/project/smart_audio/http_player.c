@@ -17,10 +17,11 @@
 #include "console/console.h"
 #include "ad_button_task.h"
 #include "wifi_manage.h"
-#include "stack.h"
 #include "tcp_client.h"
 #include "common/framework/sys_ctrl/sys_ctrl.h"
+
 #define MAX_HTTPAUDIO_NUM   20
+
 struct httpUrl_
 {
     uint8_t totalHttpUrl;
