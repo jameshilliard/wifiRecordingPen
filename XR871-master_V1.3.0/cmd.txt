@@ -105,7 +105,7 @@ net ifconfig status
 net ifconfig up
 
 audio cap  16000 1 record.pcm
-audio play 44100 2 music.pcm
+audio play 16000 1 27431.pcm
 audio vol 1 12
 audio path	1 1
 audio end
