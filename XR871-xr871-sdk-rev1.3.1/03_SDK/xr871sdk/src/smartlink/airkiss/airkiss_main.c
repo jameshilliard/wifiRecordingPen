@@ -39,7 +39,7 @@
 #include "smartlink/airkiss/wlan_airkiss.h"
 #include "airkiss.h"
 
-#define g_debuglevel  ERROR
+#define g_debuglevel  OFF
 
 static airkiss_priv_t *airkiss_priv;
 

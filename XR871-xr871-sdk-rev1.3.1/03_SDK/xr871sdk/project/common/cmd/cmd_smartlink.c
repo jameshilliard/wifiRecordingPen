@@ -41,6 +41,7 @@
 #include "smartlink/smart_config/wlan_smart_config.h"
 #include "smartlink/airkiss/wlan_airkiss.h"
 #include "smartlink/voice_print/voice_print.h"
+#include "console/console.h"
 
 #define SMARTLINK_USE_AIRKISS
 #define SMARTLINK_USE_SMARTCONFIG
@@ -198,6 +199,14 @@ static void smartlink_task(void *arg)
 		if (!wlan_airkiss_connect_ack(g_wlan_netif, SMARTLINK_TIME_OUT_MS, &ak_result)) {
 			CMD_DBG("ssid:%s psk:%s random:%d\n", (char *)ak_result.ssid,
 			        (char *)ak_result.passphrase, ak_result.random_num);
+            char cmdBuf[64]={0};
+            sprintf(cmdBuf,"sysinfo set sta ssid %s",(char *)ak_result.ssid);
+            console_cmd(cmdBuf);
+            sprintf(cmdBuf,"sysinfo set sta psk %s",(char *)ak_result.passphrase);
+            console_cmd(cmdBuf); 
+            sprintf(cmdBuf,"sysinfo save");
+            console_cmd(cmdBuf);
+            
 		}
 	}
 #endif
@@ -206,6 +215,7 @@ static void smartlink_task(void *arg)
 		if (!wlan_smart_config_connect_ack(g_wlan_netif, SMARTLINK_TIME_OUT_MS, &sc_result)) {
 			CMD_DBG("ssid:%s psk:%s random:%d\n", (char *)sc_result.ssid,
 			        (char *)sc_result.passphrase, sc_result.random_num);
+            
 		}
 	}
 #endif

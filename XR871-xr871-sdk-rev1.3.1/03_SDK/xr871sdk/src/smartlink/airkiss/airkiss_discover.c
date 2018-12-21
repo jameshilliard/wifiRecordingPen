@@ -11,7 +11,7 @@
 #include "smartlink/airkiss/wlan_airkiss.h"
 #include "airkiss.h"
 
-#define g_debuglevel  ERROR
+#define g_debuglevel  INFO
 
 #define AIRKISS_LAN_PORT 12476
 #define AIRKISS_BIND_PORT 12476

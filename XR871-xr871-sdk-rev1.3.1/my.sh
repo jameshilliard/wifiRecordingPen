@@ -1,0 +1,2 @@
+export PATH=/home/erreur/workSpace/gcc/gcc-arm-none-eabi-4_9-2015q2/bin:/home/erreur/bin:/home/erreur/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+cd /media/sf_workSpace/other/audioAI/XR871-xr871-sdk-rev1.3.1/03_SDK/xr871sdk/project

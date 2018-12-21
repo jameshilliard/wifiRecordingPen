@@ -33,6 +33,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include "kernel/os/os.h"
 #include "console/console.h"
@@ -69,9 +70,11 @@ typedef struct console_priv {
     uint32_t        rx_data_cnt;
 
     uint8_t         *buf[CONSOLE_CMD_LINE_BUF_NUM];
-
+    char             cmdBuf[256];
+    uint8_t          cmdState;
+    int              cmdResult;
     OS_Semaphore_t   cmd_sem;
-
+    
     console_cmd_exec_func cmd_exec;
 } console_priv_t;
 
@@ -304,6 +307,14 @@ static void console_task(void *arg)
 		                                        console->last_cmd_buf_idx);
 		arch_irq_enable();
 
+        if (console->cmdState==1 && (strlen((char *)console->cmdBuf)>0) && console->cmd_exec){
+            CONS_WRN("exec cmd '%s'\n",console->cmdBuf);
+			console->cmdResult=console->cmd_exec((char *)console->cmdBuf);
+			CONS_WRN("exec cmd ret (%d)\n",console->cmdResult);
+			memset(console->cmdBuf,0,sizeof(console->cmdBuf));
+			console->cmdState=0;
+        }
+        
 		if (cmd_buf_idx != CONSOLE_INVALID_BUF_IDX) {
 			cmd_buf = CONSOLE_BUF(console, cmd_buf_idx);
 
@@ -375,7 +386,6 @@ int console_start(console_param_t *param)
 		CONS_ERR("create semaphore failed\n");
 		return -1;
 	}
-
 	/* start console task */
 	if (OS_ThreadCreate(&g_console_thread,
 		                "console",
@@ -391,8 +401,46 @@ int console_start(console_param_t *param)
 	uart = HAL_UART_GetInstance(console->uart_id);
 	HAL_UART_EnableRxCallback(console->uart_id, console_rx_callback, uart);
 	console->state = CONSOLE_STATE_START;
-
+    console->cmdState=0;
 	return 0;
+}
+
+/**
+ * @brief Stop the console
+ * @return None
+ */
+int console_cmd(const char *cmd)
+{
+    int i=0;
+    if(cmd==NULL || strlen(cmd)==0 || cmd[0]=='\0'){
+        CONS_ERR("console cmd failed\n");
+        return -1;
+    }
+	console_priv_t *console;
+	console = &g_console;
+	console->cmdResult=-1;
+	
+	if(console->cmdState==0)
+	{
+	    int length=strlen(cmd);
+        memset(console->cmdBuf,0,sizeof(console->cmdBuf));
+        memcpy((char *)console->cmdBuf,cmd,length);
+        CONS_WRN("console cmd and wait '%s' '%s' length=%d %d addr=%p\n",console->cmdBuf,cmd,strlen((char *)console->cmdBuf),length,console->cmdBuf);
+      	/* notify console task that a new command is ready */
+      	if ((strlen((char *)console->cmdBuf)>0) && console->cmd_exec){
+      	    console->cmdState=1;
+            OS_SemaphoreRelease(&console->cmd_sem);
+            for(i=0;i<150;i++){
+                if(console->cmdState==0){
+                    CONS_WRN("cmdResult=%d\n",console->cmdResult);
+                    break;
+                }
+                CONS_WRN("i=%d cmdResult=%d\n",i,console->cmdResult);
+                OS_MSleep(100);
+	        }  
+      	}  
+	}
+	return console->cmdResult;
 }
 
 /**

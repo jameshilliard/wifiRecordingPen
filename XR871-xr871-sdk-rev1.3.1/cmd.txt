@@ -1,0 +1,145 @@
+﻿1. 用户名：forgetorsf
+     密码：forgetor119556259
+
+
+2. complie command
+export PATH=/home/erreur/workSpace/gcc/gcc-arm-none-eabi-4_9-2015q2/bin:/home/erreur/bin:/home/erreur/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+cd /media/sf_workSpace/other/audioAI/XR871-xr871-sdk-rev1.3.1/03_SDK/xr871sdk/project
+make lib_clean;make clean
+make lib;make;make image
+
+netsh wlan set hostednetwork mode=allow ssid=jingyan key=12345678
+netsh wlan start hostednetwork
+
+export PATH=/usr/gcc-arm-none-eabi-4_9-2015q2/bin/:/usr/local/bin:/usr/bin:/cygdrive/c/Windows/system32:/cygdrive/c/Windows:/cygdrive/c/Windows/System32/Wbem:/cygdrive/c/Windows/System32/WindowsPowerShell/v1.0:/cygdrive/c/Program Files (x86)/ATI Technologies/ATI.ACE/Core-Static:/cygdrive/c/Program Files (x86)/AMD/ATI.ACE/Core-Static:/cygdrive/c/Program Files (x86)/Microsoft SQL Server/90/Tools/binn:/cygdrive/c/Program Files/TortoiseSVN/bin
+cd /cygdrive/e/work/svnProject/wifiRecordingPen/XR871-master_V1.3.0/03_SDK/xr871sdk/project/audioOnline/gcc
+make lib_clean;make clean
+make lib;make;make image
+
+export PATH=/home/erreur/workSpace/gcc/gcc-arm-none-eabi-4_9-2015q2/bin:/home/erreur/bin:/home/erreur/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+cd /media/sf_workSpace/other/audioAI/XR871-master_V1.3.0/03_SDK/xr871sdk
+
+
+3.test command
+
+net airkiss set_key e1c361cc29e43fb8
+net airkiss set_key 1234567812345678
+net airkiss start
+net airkiss stop
+net smartlink start
+net smartlink stop
+
+test airkiss command:
+net airkiss start
+net airkiss stop
+
+net sta set ssid forgetor
+net sta set psk 119556259
+
+net sta set ssid @PHICOMM_59
+net sta get ssid
+net sta set psk zmt123456
+net sta get psk
+net sta enable
+net sta disable
+
+sysinfo default
+sysinfo set sta ssid forgetor
+sysinfo set sta psk 119556259
+sysinfo get sta ssid
+sysinfo get sta psk
+sysinfo set sta ssid jingyan
+sysinfo set sta psk 12345678
+sysinfo save
+
+pm net_prepare
+
+sysinfo set sta ssid @PHICOMM_5912
+sysinfo set sta psk zmt123456
+sysinfo get sta ssid
+sysinfo get sta psk
+sysinfo save
+
+net httpc post http://ipc.100memory.com/cmd.php?act=login id=FMVB1WP4LNLLL3BJWPNU&pwd=70328038bcce1e39e609ea8d442623db&HWVersion=2.1.03&SWVersion=v2.3.2000&&devType=7
+
+net smartconfig start
+net smartconfig stop
+
+net voiceprint start
+net voiceprint stop
+
+cedarx create
+cedarx destroy
+cedarx play
+cedarx stop
+cedarx pause
+cedarx seturl file://music/1.mp3
+cedarx seturl file://14978.amr
+cedarx seturl http://audio.xmcdn.com/group38/M01/03/15/wKgJo1pho9mwueFFABHZntKAMWw113.mp3
+cedarx getpos
+cedarx seek 6000
+cedarx setvol 4
+cedarx playdic file://music
+cedarx rec file://wechat0.pcm
+cedarx rec flash://0?addr=4096000
+cedarx end
+cedarx showbuf
+cedarx bufinfo
+cedarx setbuf 14336 6144 24576 10240
+stream fifo 2048, dec buf 3072, pcm buf 16385(frame size 8192).
+
+cedarx rec file://wechat.amr
+
+heap space
+heap info
+
+fs mount
+fs unmount
+
+
+0x40050000
+PA data 0x40050000
+
+AD:PA11 CH3
+mem r32 0x40050004 4
+mem w32 0x40050004 0x44440000
+mem r32 0x40050010 4
+
+mem r32 0x40043088 4
+
+40043088: 00000fff
+40043088: 000001dd 477
+40043088: 00000b90 2960
+40043088: 00000990 2448
+40043088: 000003d4 980
+40043088: 000005f0 1520
+40043088: 0000079b 1947
+
+PB13:audio控制引脚
+mem w32 0x40050028 0x00100000
+mem w32 0x40050034 0x00002000
+
+
+net ping www.baidu.com
+net ping 192.168.2.186
+net ifconfig status
+net ifconfig up
+
+audio cap  16000 1 record.pcm
+audio play 44100 2 music.pcm
+audio vol   1 12
+audio path	1 1
+audio end
+
+http://192.168.51.1/a/278299.mp4
+
+net mode ap
+net mode sta
+net ap config zss 12345678
+net ap get psk
+net httpd 1
+
+fs mount 
+fs unmount 
+fs test 
+fs rmdir

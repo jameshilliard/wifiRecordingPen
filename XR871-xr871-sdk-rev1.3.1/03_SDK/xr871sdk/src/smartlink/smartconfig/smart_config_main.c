@@ -40,7 +40,7 @@
 #include "smart_config.h"
 #include "smart_config_decode.h"
 
-#define g_debuglevel  ERROR
+#define g_debuglevel  OFF
 
 smartconfig_priv_t *smartconfig_priv;
 const char smartconfig_version_str[] = { "1.0" };

@@ -34,6 +34,7 @@
 #include "driver/chip/hal_codec.h"
 #include "fs/fatfs/ff.h"
 #include "common/framework/fs_ctrl.h"
+#include "tcp_client.h"
 
 #define SOUND_PLAYCARD			AUDIO_CARD0
 #define SOUND_CAPCARD			AUDIO_CARD0
@@ -171,6 +172,76 @@ exit_thread:
 	AUDIO_DELETE_THREAD(g_audio_stream_thread);
 }
 
+void http_cap_exec(void *cmd)
+{
+	int argc, i = 0, ret = 0;
+	char *argv[5];
+	struct pcm_config *config = NULL;
+
+	argc = cmd_parse_argv(cmd, argv, 5);
+	if (argc < 3) {
+		CMD_ERR("invalid audio capture cmd, argc %d\n", argc);
+		goto exit_thread;
+	}
+	int samplerate = cmd_atoi(argv[0]);
+	int channels = cmd_atoi(argv[1]);
+
+	CMD_DBG("CMD:drv audio cap (samplerate)%d (channel)%d (httpfile)%s\n", samplerate, channels, argv[2]);
+
+	SEARCH_FOREACH_CONFIG(samplerate, channels, config, i);
+	if (config == NULL) {
+		CMD_ERR("invalid audio cap param.\n");
+		goto exit_thread;
+	}
+
+    unsigned int pcm_buf_size = (config->channels)*2*(config->period_size);
+    char *pcm_data = malloc(pcm_buf_size);
+    if (pcm_data == NULL) {
+		CMD_ERR("malloc buf failed\n");
+		goto exit_thread;
+    }
+    memset(pcm_data, 0, pcm_buf_size);
+
+    if (snd_pcm_open(config, SOUND_CAPCARD, PCM_IN) != 0)
+    {
+		CMD_ERR("sound card open err\n");
+		goto exit;
+    }
+	unsigned int delay_time = TEST_DELAY_TIME;
+
+	g_audio_task_end = 0;
+    int length=pcm_buf_size;
+	CMD_DBG("Capture run.\n");
+    while (!g_audio_task_end && --delay_time != 0) {
+            ret = snd_pcm_read(config, SOUND_CAPCARD, pcm_data, pcm_buf_size);
+            if (ret != pcm_buf_size) {
+				CMD_ERR("read data failed(%d), line:%d\n", ret, __LINE__);
+				break;
+            }
+            length=pcm_buf_size;
+            for(i=0;i<10;i++)
+            {
+                if(length>TCP_SEND_DATA_MAX_LEN)
+                {
+                	pushPcmAudioData((char *)pcm_data+TCP_SEND_DATA_MAX_LEN*i,TCP_SEND_DATA_MAX_LEN,2,1);
+                    length=pcm_buf_size-TCP_SEND_DATA_MAX_LEN*(i+1);
+                }
+                else
+                {
+                    pushPcmAudioData((char *)pcm_data+TCP_SEND_DATA_MAX_LEN*i,length,2,1); 
+                    break;
+                }
+            }
+    }
+    snd_pcm_close(SOUND_CAPCARD, PCM_IN);
+
+exit:
+	free(pcm_data);
+	CMD_DBG("Capture end.\n");
+exit_thread:
+	AUDIO_DELETE_THREAD(g_audio_stream_thread);
+}
+
 void play_exec(void *cmd)
 {
 	int argc, i = 0;
@@ -290,7 +361,6 @@ exit:
 static enum cmd_status audio_play_task(char *arg)
 {
 	char *cmd = (char *)arg;
-
 	AUDIO_CREAT_THREAD(g_audio_stream_thread, play_exec, cmd);
 	return CMD_STATUS_OK;
 }
@@ -300,6 +370,16 @@ static enum cmd_status audio_cap_task(char *arg)
 	char *cmd = (char *)arg;
 
 	AUDIO_CREAT_THREAD(g_audio_stream_thread, cap_exec, cmd);
+	return CMD_STATUS_OK;
+}
+
+static enum cmd_status audio_http_cap_task(char *arg)
+{
+	//char *cmd = (char *)arg;
+    static char cmd[64]={0};
+    memset(cmd,0,sizeof(cmd));
+    strncpy(cmd,arg,sizeof(cmd));
+	AUDIO_CREAT_THREAD(g_audio_stream_thread, http_cap_exec, cmd);
 	return CMD_STATUS_OK;
 }
 
@@ -346,7 +426,8 @@ static enum cmd_status audio_end_task(char *arg)
  *		dev:		device mask
  *		en:			[0~1]
  * example
- *		audio cap 16000 1 record.pcm
+        audio play 16000 1 17136.pcm
+ *		audio httpcap 16000 1 record0.pcm
  *		audio play 44100 2 music.pcm
  *      audio vol 12
  *		audio path	1 1
@@ -355,6 +436,7 @@ static enum cmd_status audio_end_task(char *arg)
 
 static const struct cmd_data g_audio_cmds[] = {
 	{ "cap",     audio_cap_task },
+	{ "httpcap", audio_http_cap_task },
 	{ "play",    audio_play_task },
 	{ "vol",     audio_vol_task },
 	{ "path",    audio_path_task },

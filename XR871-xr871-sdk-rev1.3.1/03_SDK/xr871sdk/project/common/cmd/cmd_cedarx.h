@@ -34,8 +34,21 @@
 extern "C" {
 #endif
 
+enum CEDARX_STATUS_TYPE
+{
+    STATUS_STOPPED   = 0,
+    STATUS_PREPARING = 1,
+    STATUS_PREPARED  = 2,
+    STATUS_PLAYING   = 3,
+    STATUS_PAUSED    = 4,
+    STATUS_SEEKING   = 5
+};
+
 #ifdef __PRJ_CONFIG_XPLAYER
 enum cmd_status cmd_cedarx_exec(char *cmd);
+uint8_t sys_set_source_exit(uint8_t set);
+uint8_t sys_set_source_exit_get(void);
+uint8_t sys_get_status_exec(void);
 #endif
 
 #ifdef __cplusplus

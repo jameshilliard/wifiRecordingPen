@@ -51,7 +51,7 @@ LIBRARIES += -lmqtt \
 	-lxrsys
 
 LIBRARIES += -lcjson -lfs -lconsole -lcomponent -lefpg -lpm -laudmgr -lpcm \
-	-luncompress -ladt -lutil
+	-luncompress -ladt -lutil -lspeex
 
 endif # __CONFIG_BOOTLOADER
 

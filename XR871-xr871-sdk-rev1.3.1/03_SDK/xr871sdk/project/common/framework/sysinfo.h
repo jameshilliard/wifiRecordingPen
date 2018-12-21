@@ -109,6 +109,7 @@ struct sysinfo {
 
 	struct sysinfo_netif_param netif_sta_param;
 	struct sysinfo_netif_param netif_ap_param;
+	int    volume;
 };
 
 #define SYSINFO_SIZE	sizeof(struct sysinfo)

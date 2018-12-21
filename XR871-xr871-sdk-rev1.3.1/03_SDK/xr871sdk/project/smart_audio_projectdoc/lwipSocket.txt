@@ -1,0 +1,377 @@
+1.tcp_new()函数：
+	用来返回一个struct tcp_pcb* 的一个指针。
+2.设置tcp/ip的保活设置。
+	 client_pcb->so_options |= SOF_KEEPALIVE;
+         client_pcb->keep_idle = 50000;	   // ms   tcp连接上5秒之后，发送第一keep_alive数据包。
+         client_pcb->keep_intvl = 20000;   // ms   以后每隔2秒发送一个keep_alive数据包。
+         client_pcb->keep_cnt = 5;	   // 如果联系5次没有收到对方回应的keep_alive数据包。则认为已经断开连接。
+ 
+3. err_t tcp_connect(struct tcp_pcb *pcb, struct ip_addr *ipaddr, u16_t port,
+      err_t (* connected)(void *arg, struct tcp_pcb *tpcb, err_t err))
+ 
+	函数功能：
+		用来连接到一个指定的tcp服务端。
+ 
+	参数一：
+		tcp_new()函数的返回值。作为该函数的第一参数。
+	
+	参数二：
+		要连接到那个ip地址上，可以使用下面的这个宏函数进行处理。
+		
+		IP4_ADDR( &DestIPaddr, *destip, *(destip+1),*(destip+2), *(destip+3));
+ 
+		#define IP4_ADDR(ipaddr, a,b,c,d) \
+		(ipaddr)->addr = htonl(((u32_t)((a) & 0xff) << 24) | \
+                               ((u32_t)((b) & 0xff) << 16) | \
+                               ((u32_t)((c) & 0xff) << 8) | \
+                                (u32_t)((d) & 0xff))
+	参数三：连接到tcp服务端的端口号  2000，
+	
+	参数四：它是一个函数指针。这个函数指针说明在tcp连接上服务端之后，会调用该函数。
+ 
+ 
+4.void tcp_err(struct tcp_pcb *pcb, void (* errf)(void *arg, err_t err))
+	
+	函数的功能：
+		连接出错的时候。进行错误处理的函数。
+	参数一：
+		用来描述tcp连接的一个结构体。
+	参数二：
+		用来处理错误的函数。当连接出现异常的时候。会调用这个函数。
+5.void tcp_arg(struct tcp_pcb *pcb, void *arg)
+	功能：
+		提供一种可以让应用程序传递参数给回调函数的方法。
+	参数一：
+		用来描述tcp连接的一个结构体。
+	参数二：
+		应用程序提供的一个结构体。他可以保护tcp的状态，或者tcp要发送的数据等信息。
+6.static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
+	函数功能:
+		当接收到数据的时候。对接收的数据进行处理。
+	参数一：
+		该参数是通过tcp_arg()函数传入的。
+	参数二： 
+		用来描述tcp连接的一个结构体。
+	参数三：
+		接收到的数据都存放在这个pbuf中。
+	参数四：
+		err，它说明了这次tcp连接过程中是否出现异常。如果他的值为ERR_OK说明正常。
+	
+	注释：如果接收到的 p 等于空的话。说明服务端主动关闭连接了，那么需要关闭这个socket，连接。
+	并启动一个time。定时的重新连接服务端socket.
+7. void tcp_recved(struct tcp_pcb *pcb, u16_t len)
+	函数功能：
+	当tcp_client_recv()函数调用正常的话。则可用使用该方法进行数据接收方法。
+	参数一：
+		用来描述tcp连接的一个结构体。
+	参数二：
+		要接收的数据长度。一般情况下可以认为是p->tot_len。
+	
+最后把函数代码该贴上。
+err_t tcp_client_connect(const uint8_t *destip, uint16_t port)
+{
+  struct tcp_pcb *client_pcb;
+  struct ip_addr DestIPaddr;
+  err_t err = ERR_OK;
+ 
+  /* create new tcp pcb */
+  client_pcb = tcp_new();
+  client_pcb->so_options |= SOF_KEEPALIVE;
+ #if 1
+  client_pcb->keep_idle = 50000;	   // ms
+  client_pcb->keep_intvl = 20000;	   // ms
+  client_pcb->keep_cnt = 5; 
+ #endif	   
+  if (client_pcb != NULL)
+  {
+ 
+   
+   IP4_ADDR( &DestIPaddr, *destip, *(destip+1),*(destip+2), *(destip+3) );
+ 
+    /* connect to destination address/port */
+    err = tcp_connect(client_pcb,&DestIPaddr,port,tcp_client_connected);
+   
+    tcp_err(client_pcb,tcp_errf);
+    
+  }
+  return err;
+  
+}
+ 
+ 
+static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err)
+{
+   
+    if(es == NULL) es = (struct client *)mem_malloc(sizeof(struct client));
+    switch(err){
+        case ERR_OK:  
+          es->pcb = tpcb;                                  /*设置当前的状态为连接状态?*/  
+          es->p_tx = NULL;
+          es->state = ES_CONNECTED;  
+          tcp_arg(tpcb, es);                       /*把当前的参数传给所有的回调函数?   */ 
+          tcp_recv(tpcb, tcp_client_recv);
+        
+          break ;
+       case ERR_MEM :
+           tcp_client_connection_close(tpcb, es);                
+          break ;
+       default :
+           break ;
+           
+   }
+   return err;
+}
+ 
+ 
+static void tcp_errf(void *arg,err_t err){
+    printf("\r\ntcp_errf be called...\r\n");
+    if(es == NULL){
+        es = (struct client *)mem_malloc(sizeof(struct client));
+        es = (struct client *)arg;
+    }
+    if(err == ERR_OK ){
+          /* No error, everything OK. */
+          return ;
+     }   
+    switch(err)
+    { 
+        case ERR_MEM:                                            /* Out of memory error.     */
+            printf("\r\n ERR_MEM   \r\n");
+            break;  
+        case ERR_BUF:                                            /* Buffer error.            */
+            printf("\r\n ERR_BUF   \r\n");
+            break;
+        case  ERR_TIMEOUT:                                       /* Timeout.                 */
+            printf("\r\n ERR_TIMEOUT   \r\n");
+            break;
+        case ERR_RTE:                                            /* Routing problem.         */      
+             printf("\r\n ERR_RTE   \r\n");
+            break;
+       case ERR_ISCONN:                                          /* Already connected.       */
+             printf("\r\n ERR_ISCONN   \r\n");
+            break;
+        case ERR_ABRT:                                           /* Connection aborted.      */
+            printf("\r\n ERR_ABRT   \r\n");
+            break;
+        case ERR_RST:                                            /* Connection reset.        */     
+            printf("\r\n ERR_RST   \r\n");
+            break;
+        case ERR_CONN:                                           /* Not connected.           */
+          printf("\r\n ERR_CONN   \r\n");
+            break;
+        case ERR_CLSD:                                           /* Connection closed.       */
+            printf("\r\n ERR_CLSD   \r\n");
+            break;
+        case ERR_VAL:                                            /* Illegal value.           */
+           printf("\r\n ERR_VAL   \r\n");
+           return;
+        case ERR_ARG:                                            /* Illegal argument.        */
+            printf("\r\n ERR_ARG   \r\n");
+            return;
+        case ERR_USE:                                            /* Address in use.          */
+           printf("\r\n ERR_USE   \r\n");
+           return; 
+        case ERR_IF:                                             /* Low-level netif error    */
+            printf("\r\n ERR_IF   \r\n");
+            break;
+        case ERR_INPROGRESS:                                     /* Operation in progress    */
+            printf("\r\n ERR_INPROGRESS   \r\n");
+            break;
+ 
+    }
+   es->state  = ES_CLOSING;
+   err_process();
+}
+    
+    
+/**
+  * @brief tcp_receiv callback
+  * @param arg: argument to be passed to receive callback 
+  * @param tpcb: tcp connection control block 
+  * @param err: receive error code 
+  * @retval err_t: retuned error  
+  */
+static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
+{ 
+  struct client *es;
+  err_t ret_err;
+  LWIP_ASSERT("arg != NULL",arg != NULL);
+  es = (struct client *)arg;
+  if (p == NULL)
+  {
+    /* remote host closed connection */
+    es->state = ES_CLOSING;
+    if(es->p_tx == NULL)
+    {
+       /* we're done sending, close connection */
+       tcp_client_connection_close(tpcb, es);
+    }
+    ret_err = ERR_OK;
+  }   
+  else if(err != ERR_OK)
+  {
+    /* free received pbuf*/
+    if (p != NULL)
+    {
+      pbuf_free(p);
+    }
+    ret_err = err;
+  }
+  else if(es->state == ES_CONNECTED)
+  {  
+    /* Acknowledge data reception */
+    tcp_recved(tpcb, p->tot_len);                   //获取p中的数据。
+ 
+    memset(recevRxBufferTcpEth,0x00,TCPREVDATALEN);
+    if(p->len > TCPREVDATALEN){    
+        p->len= TCPREVDATALEN;    
+    }
+    memcpy(&recevRxBufferTcpEth,p->payload,p->len);
+    tcpRecevieFlag  = 1;                    //将tcp设置为1.说明接收到了服务端的数据。
+    pbuf_free(p);                   
+    ret_err = ERR_OK;   
+  }
+  /* data received when connection already closed */
+  else
+  {
+    /* Acknowledge data reception */
+    tcp_recved(tpcb, p->tot_len);
+    
+    /* free pbuf and do nothing */
+    pbuf_free(p);
+    ret_err = ERR_OK;
+  }
+  return ret_err;
+}
+ 
+ 
+/**
+  * @brief function used to send data
+  * @param  tpcb: tcp control block
+  * @param  es: pointer on structure of type client containing info on data 
+  *             to be sent
+  * @retval None 
+  */
+void tcp_client_send(struct tcp_pcb *tpcb, struct client * es)
+{
+  struct pbuf *ptr;
+  err_t wr_err = ERR_OK; 
+  while ((wr_err == ERR_OK) &&
+         (es->p_tx != NULL) && 
+         (es->p_tx->len <= tcp_sndbuf(tpcb)))
+  {
+    /* get pointer on pbuf from es structure */
+    ptr = es->p_tx;
+ 
+    wr_err = tcp_write(tpcb, ptr->payload, ptr->len, 1);
+    
+    if (wr_err == ERR_OK)
+    { 
+      /* continue with next pbuf in chain (if any) */
+      es->p_tx = ptr->next;
+      
+      if(es->p_tx != NULL)
+      {
+      /* increment reference count for es->p */
+        pbuf_ref(es->p_tx);
+      }
+      pbuf_free(ptr);
+   }
+   else if(wr_err == ERR_MEM)
+   {
+      /* we are low on memory, try later, defer to poll */
+     es->p_tx = ptr;                                                    
+   }
+   else
+   {
+     es->p_tx = ptr;    
+     /* other problem ?? */
+   }
+  }
+}
+ 
+ 
+//user send message 
+u8_t tcp_send_message(void *msg, uint16_t len){
+    u8_t  count = 0;
+    struct pbuf *p;  
+    if(es->state != ES_CONNECTED)  return -1;
+    if(es->p_tx == NULL){
+        
+          es->p_tx  = pbuf_alloc(PBUF_TRANSPORT,len,PBUF_RAM);          
+          pbuf_take( es->p_tx , (char*)msg, len);
+    }
+    tcp_client_send(es->pcb,es);
+    return 1;
+}
+ 
+ 
+ 
+ 
+/**
+  * @brief This function is used to close the tcp connection with server
+  * @param tpcb: tcp connection control block
+  * @param es: pointer on client structure
+  * @retval None
+  */
+static void tcp_err_close()
+{
+  /* remove callbacks */
+  tcp_recv(es->pcb, NULL);
+  
+  if (es != NULL)
+  {
+  	if(es->p_tx != NULL){
+		pbuf_free(es->p_tx);
+  	}
+	if (es->pcb != NULL) {
+		 tcp_close(es->pcb);
+	}
+    mem_free(es);
+  }
+}
+ 
+ 
+static void tcp_client_connection_close()
+{
+  /* remove callbacks */
+  tcp_recv(es->pcb, NULL);
+  if (es != NULL)
+  {
+  	if(es->p_tx != NULL){
+		pbuf_free(es->p_tx);
+  	}
+	if (es->pcb != NULL) {
+		  /* close tcp connection */
+		 tcp_close(es->pcb);
+	}
+    mem_free(es);
+    es = NULL;
+  }
+  set_timer4_countTime(TIMER_5000MS);
+}
+ 
+//错误处理函数。当tcp连接发送错误的时候。调用该函数。
+static void err_process(){
+	connet_flag++;
+	 if(connet_flag<= 3){
+		set_timer4_countTime(TIMER_5000MS);
+	 }
+	 if(connet_flag>3){	   
+		 connet_flag = 4;
+		set_timer4_countTime(TIMER_10000MS);
+	 }
+}
+//定时时间到的时候。调用该方法重连。
+void reconnet_tcp_timer(){
+	 if(es != NULL){
+		tcp_err_close(es->pcb, es );
+		tcp_client_connect(ip_des,destcp_port);
+	 }else{
+		tcp_client_connect(ip_des,destcp_port);
+	 }	
+}
+ //用来处理数据的方法，具体的业务数据。
+int W301ProcessRecvTcpData(){
+  
+}

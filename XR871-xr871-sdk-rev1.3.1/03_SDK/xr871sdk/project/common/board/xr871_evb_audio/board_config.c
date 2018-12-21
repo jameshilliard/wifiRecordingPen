@@ -200,8 +200,8 @@ static const HAL_SDCGPIOCfg g_sd0_cfg = {
 	.detect_delay    = BOARD_SD0_DET_DELAY
 };
 
-#define BOARD_SPK_PORT    		GPIO_PORT_A
-#define BOARD_SPK_PIN     		GPIO_PIN_3
+#define BOARD_SPK_PORT    		GPIO_PORT_B
+#define BOARD_SPK_PIN     		GPIO_PIN_13
 #define BOARD_SPK_ON_DELAY     	150
 #define BOARD_SPK_OFF_DELAY     1
 

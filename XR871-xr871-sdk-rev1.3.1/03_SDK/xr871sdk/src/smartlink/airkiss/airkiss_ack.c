@@ -36,7 +36,7 @@
 
 #include "airkiss.h"
 
-#define g_debuglevel  ERROR
+#define g_debuglevel  OFF
 
 static int ack_successful(struct netif *nif, uint32_t random_num)
 {

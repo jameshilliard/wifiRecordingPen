@@ -30,7 +30,7 @@ __CONFIG_LIBC_WRAP_STDIO ?= y
 __CONFIG_MALLOC_USE_STDLIB ?= y
 
 # trace heap memory usage and error when using malloc, free, etc.
-__CONFIG_MALLOC_TRACE ?= n
+__CONFIG_MALLOC_TRACE ?= y
 
 # os
 __CONFIG_OS_FREERTOS ?= y
