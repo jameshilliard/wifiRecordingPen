@@ -141,7 +141,9 @@ static int  realResolvePacket(const char *ptr,uint32_t size)
     	case MSG_PLAYURL:
         	{
         	    pPlayUrl = (struct TMSG_REQUESTPLAYURL*)pMsgHeader;
-        	    TCP_CLIENT_TRACK_INFO("MSG_PLAYURL %d %s\n",pPlayUrl->flage,pPlayUrl->url); 
+        	    if(strlen(pPlayUrl->url)>10)
+    			    analysisHttpStr(pPlayUrl->url);
+        	    TCP_CLIENT_TRACK_INFO("MSG_PLAYURL %d %s %d\n",pPlayUrl->flage,pPlayUrl->url,strlen(pPlayUrl->url)); 
         	}
     		break;
     	case MSG_PLAYURLLIST:
@@ -266,9 +268,10 @@ static void tcp_err_close()
     }
     if(tcpClient.pcb)
     {
-        tcp_abort(tcpClient.pcb);//ÖÕÖ¹Á¬½Ó,É¾³ýpcb¿ØÖÆ¿é
         tcp_recv(tcpClient.pcb, NULL);
+        TCP_CLIENT_TRACK_INFO("tcp_recv\n");
         tcp_close(tcpClient.pcb);
+        TCP_CLIENT_TRACK_INFO("tcp_recv tcp_close\n");
         tcpClient.pcb=NULL;
     }
     tcpClient.state = STATE_TCP_CLINET_CLOSING;
@@ -392,6 +395,7 @@ err_t tcp_client_send(struct tcp_pcb *tpcb, struct client *tcpClient)
                 pbuf_ref(tcpClient->p_tx);
             }
             pbuf_free(ptr);
+            ptr=NULL;
         }
         else if(wr_err == ERR_MEM){
              /* we are low on memory, try later, defer to poll */
@@ -509,6 +513,7 @@ int sendAudioData(const char *audioBuffer,int length,int flag,int type)
     m_intelligentData.len = length;
     m_intelligentData.ts = type;
     m_intelligentData.tipe = flag;
+    m_intelligentData.humanSize=1;
 	//saveAudioDataToMMC(audioBuffer,length,flag);
     if(bytSendAudioBuf==NULL || length>MAX_PACKET_LENGTH)
         return -1;
@@ -601,7 +606,7 @@ void tcp_client_speex_task(void *arg)
 	amrSumLength=0;
     msgPacket=malloc(MAX_PACKET_LENGTH);
     bytSendAudioBuf=malloc(MAX_PACKET_LENGTH);
-    amrAudioBuf=malloc(20*1024);
+    amrAudioBuf=malloc(16*TCP_SEND_DATA_MAX_LEN);
     speexBuffer=malloc(512);
     TCP_CLIENT_TRACK_INFO("tcp client task start\n");
 	while (tcp_client_task_run) 
@@ -609,24 +614,36 @@ void tcp_client_speex_task(void *arg)
 		switch(tcpClientStatus)
 		{
 			case 1:
-				sendAudioData(NULL,0,1,7);
+				//sendAudioData(NULL,0,1,7);
 				tcpClientStatus=3;
 				TCP_CLIENT_TRACK_INFO("tcp_client_speex_task start\n");
 				break;
 			case 2:
 			    {
                     length=amrSumLength;
-                    for(i=0;i<20;i++)
+                    for(i=0;i<16;i++)
                     {
                         if(length>TCP_SEND_DATA_MAX_LEN)
                         {
-                        	iRet=sendAudioData((char *)amrAudioBuf+TCP_SEND_DATA_MAX_LEN*i,TCP_SEND_DATA_MAX_LEN,2,1);
+                            if(i==0)
+                     	        iRet=sendAudioData((char *)amrAudioBuf+TCP_SEND_DATA_MAX_LEN*i,TCP_SEND_DATA_MAX_LEN,1,7);
+                            else
+                            	iRet=sendAudioData((char *)amrAudioBuf+TCP_SEND_DATA_MAX_LEN*i,TCP_SEND_DATA_MAX_LEN,2,1);
                             length=amrSumLength-TCP_SEND_DATA_MAX_LEN*(i+1);
+
                         }
                         else
                         {
-                            iRet=sendAudioData((char *)amrAudioBuf+TCP_SEND_DATA_MAX_LEN*i,length,2,1);
-                            tcpClientStatus=4;
+                            if(i==0)
+                            {
+                                iRet=sendAudioData((char *)amrAudioBuf+TCP_SEND_DATA_MAX_LEN*i,length,1,7);
+                                tcpClientStatus=4;
+                            } 
+                            else
+                            {
+                                iRet=sendAudioData((char *)amrAudioBuf+TCP_SEND_DATA_MAX_LEN*i,length,3,7);
+                                tcpClientStatus=0;
+                            }
                             break;
                         }
                         if(iRet!=ERR_OK)

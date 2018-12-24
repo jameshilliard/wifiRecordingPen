@@ -121,6 +121,8 @@ int  analysisHttpStr(char *httpStr)
 {
     char *result = NULL;
     int iRet=0,i=0;
+    if(strstr(httpStr,".mp3")==NULL)
+        return -1;
     result = strtok(httpStr,";");
     if(result)
         initHttpAudioArray();

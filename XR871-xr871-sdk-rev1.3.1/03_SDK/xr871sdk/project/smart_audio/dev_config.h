@@ -11,9 +11,9 @@
 
 #define     DEV_DE_ROUNTER_SERVER       "ipc.100memory.com"
 //µÇÂ¼Ö¸Áî
-#define 	DEV_LOGIN_CONSERVER  	    "get http://%s/cmd.php?act=login"
+#define 	DEV_LOGIN_CONSERVER  	    "post http://%s/cmd.php?act=login"
 //µÇ³öÖ¸Áî
-#define 	DEV_LOGOUT_CONSERVER		"get http://%s/cmd.php?act=logout" 
+#define 	DEV_LOGOUT_CONSERVER		"post http://%s/cmd.php?act=logout" 
 
 
 

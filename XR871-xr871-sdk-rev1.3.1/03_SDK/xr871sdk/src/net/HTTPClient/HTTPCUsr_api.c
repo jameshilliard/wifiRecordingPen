@@ -278,7 +278,7 @@ int HTTPC_read(HTTPParameters *ClientParams,VOID *pBuffer, UINT32 toRead, UINT32
 	UINT32 rSize = toRead;
 	HTTP_SESSION_HANDLE pSession = ClientParams->pHTTP;
 
-	nRetCode = HTTPClientReadData(pSession,pBuffer,rSize,0,rBytes);
+	nRetCode = HTTPClientReadData(pSession,pBuffer,rSize,1,rBytes);
 	*recived = *rBytes;
 	return nRetCode;
 }

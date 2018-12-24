@@ -6,6 +6,9 @@
 #define RTP_SERVER_INFO 1
 #define RTP_SERVER_WARN 1
 
+#define DEBUG_RTP_SERVER_IP         "121.42.196.244"
+#define DEBUG_RTP_SERVER_PORT       7111
+
 #define RTP_SERVER(flags, fmt, arg...)	\
 	do {								\
 		if (flags) 						\

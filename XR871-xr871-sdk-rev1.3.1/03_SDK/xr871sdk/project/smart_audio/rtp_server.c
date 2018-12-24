@@ -110,7 +110,7 @@ static int loginRounterServer(LoginReturnInfo *returnInfo,char *cmdResponse)
 	sprintf(httpServerAddr,DEV_LOGIN_CONSERVER, DEV_DE_ROUNTER_SERVER);
 	sprintf(httpCmdStr,"%s id=%s&pwd=%s&HWVersion=%s&SWVersion=%s&devType=7",httpServerAddr,DEV_DEBUG_ID,secret,DEV_HW_VERSION,DEV_SW_VERSION);
     iRet=httpc_cmd_self(httpCmdStr,cmdResponse); 
-    RTP_SERVER_TRACK_INFO("loginRounterServer: iRet=%d cmdResponse=%s end\n",iRet,cmdResponse);
+    RTP_SERVER_TRACK_INFO("loginRounterServer: iRet=%d StrcmdResponse=%s end\n",iRet,cmdResponse);
     if(iRet==0){
         iRet=analyzeLoginInfo(cmdResponse,returnInfo);
     }
@@ -119,7 +119,7 @@ static int loginRounterServer(LoginReturnInfo *returnInfo,char *cmdResponse)
 
 void rtp_server_task(void *arg)
 {
-    uint8_t cmdStatus=CMD_RTP_SERVER_CONNECT;
+    uint8_t cmdStatus=CMD_RTP_SERVER_GET_ADDR;
     int     iRet=-1;
     char    *cmdResponse=NULL;
     char    idStr[32]={0};
@@ -140,8 +140,15 @@ void rtp_server_task(void *arg)
                 memset(cmdResponse,0,4096);
                 memset(&mLoginReturnInfo,0,sizeof(mLoginReturnInfo));
                 iRet=loginRounterServer(&mLoginReturnInfo,cmdResponse);
-                if(iRet==0)
+                if(iRet==0 || iRet==4)
+                {
+                    if(iRet==4)
+                    {
+                        sprintf(mLoginReturnInfo.relayServerAddr, "%s", DEBUG_RTP_SERVER_IP);
+                        mLoginReturnInfo.relayServerPort=DEBUG_RTP_SERVER_PORT;
+                    }
                     cmdStatus=CMD_RTP_SERVER_CONNECT;
+                }   
                 if(cmdResponse){
                     free(cmdResponse);
                     cmdResponse=NULL;
@@ -154,7 +161,7 @@ void rtp_server_task(void *arg)
                     cmdStatus=CMD_RTP_SERVER_CONNECT;
                     break;
                 } 
-                iRet=tcp_client_connect("121.42.196.244",5111);
+                iRet=tcp_client_connect(mLoginReturnInfo.relayServerAddr,mLoginReturnInfo.relayServerPort);
                 if(iRet==ERR_OK){
                     cmdStatus=CMD_RTP_SERVER_LOGIN;
                 }
@@ -192,16 +199,14 @@ void rtp_server_task(void *arg)
             break;
         case CMD_RTP_SERVER_CLOSING:
             tcp_client_connection_close();
-            cmdStatus=CMD_RTP_SERVER_CONNECT;
+            cmdStatus=CMD_RTP_SERVER_GET_ADDR;
             break;
         case CMD_RTP_SERVER_SMARTLINK:
             break;
         default:
             break;
         }
-        if(cmdStatus==CMD_RTP_SERVER_GET_ADDR)
-            OS_MSleep(10000);
-        else if(cmdStatus==CMD_RTP_SERVER_CONNECT)
+        if(cmdStatus==CMD_RTP_SERVER_GET_ADDR || cmdStatus==CMD_RTP_SERVER_CONNECT)
             OS_MSleep(2000);
         else
 		    OS_MSleep(500);

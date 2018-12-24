@@ -273,10 +273,11 @@ request:
 			goto relese;
 		}
 	}
+	
 	if (httpClient.TotalResponseBodyLength != 0 || (httpClient.HttpFlags & HTTP_CLIENT_FLAG_CHUNKED )) {
-
+        CMD_DBG("get data,TotalResponseBodyLength=%d\n",(int)httpClient.TotalResponseBodyLength);
+        memset(buf, 0, 4096);
 		do {
-			memset(buf, 0, 4096);
 			if ((ret = HTTPC_read(clientParams, buf, toReadLength, (void *)&Received)) != 0) {
 				CMD_DBG("get data,Received:%d\n",Received);
 				if (ret == 1000) {
