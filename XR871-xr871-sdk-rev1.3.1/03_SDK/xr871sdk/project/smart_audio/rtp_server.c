@@ -154,7 +154,7 @@ void rtp_server_task(void *arg)
                     cmdStatus=CMD_RTP_SERVER_CONNECT;
                     break;
                 } 
-                iRet=tcp_client_connect("121.42.196.244",7111);
+                iRet=tcp_client_connect("121.42.196.244",5111);
                 if(iRet==ERR_OK){
                     cmdStatus=CMD_RTP_SERVER_LOGIN;
                 }
