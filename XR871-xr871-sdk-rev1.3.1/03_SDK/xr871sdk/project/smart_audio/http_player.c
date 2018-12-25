@@ -98,7 +98,6 @@ static int  playHttpAudio(char *httpStr)
     if(httpStr==NULL || strlen(httpStr)==0)
         return -1;
     int iRet=playStartHttpAudio(httpStr);
-    #if 0
     if(iRet!=CMD_STATUS_ACKED && iRet!=CMD_STATUS_OK)
     {
         HTTP_PLAYER_TRACK_INFO("cedarx play failure,so cedarx destroy and create\n");
@@ -106,7 +105,6 @@ static int  playHttpAudio(char *httpStr)
         console_cmd("cedarx create");
         iRet=playStartHttpAudio(httpStr); 
     }
-    #endif
     return iRet; 
 }
 
