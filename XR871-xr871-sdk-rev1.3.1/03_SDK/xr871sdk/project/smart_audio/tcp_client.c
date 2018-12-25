@@ -36,7 +36,6 @@ static OS_Thread_t  tcp_client_task_thread;
 static int          lastSumLength=0;
 static int          amrSumLength=0;
 static char *       msgPacket         = NULL;
-static char *       speexBuffer       = NULL;
 static char *       bytSendAudioBuf   = NULL;
 static char *       amrAudioBuf       = NULL;
 uint8_t             tcpClientStatus   = 0; // 1 run 2 sendBuf and end 0 stop
@@ -134,25 +133,25 @@ static int  realResolvePacket(const char *ptr,uint32_t size)
 		case MSG_PLAYSTATUS:
 		    {
 		        pPlayStatus = (struct TMSG_PLAYSTATUS*)pMsgHeader;
-		        stopHttpAudioPlay(pPlayStatus->playStatus);
 		        TCP_CLIENT_TRACK_INFO("MSG_PLAYSTATUS %d\n",pPlayStatus->playStatus);
+		        stopHttpAudioPlay(pPlayStatus->playStatus); 
 		    }
     		break;
     	case MSG_PLAYURL:
         	{
         	    pPlayUrl = (struct TMSG_REQUESTPLAYURL*)pMsgHeader;
+        	    TCP_CLIENT_TRACK_INFO("MSG_PLAYURL %d %s %d\n",pPlayUrl->flage,pPlayUrl->url,strlen(pPlayUrl->url)); 
         	    if(strlen(pPlayUrl->url)>10)
     			    analysisHttpStr(pPlayUrl->url);
-        	    TCP_CLIENT_TRACK_INFO("MSG_PLAYURL %d %s %d\n",pPlayUrl->flage,pPlayUrl->url,strlen(pPlayUrl->url)); 
         	}
     		break;
     	case MSG_PLAYURLLIST:
     	    {
     			pPlayUrlList = (struct TMSG_REQUESTPLAYURLLIST*)pMsgHeader;
+    			TCP_CLIENT_TRACK_INFO("MSG_PLAYURL %d %s\n",pPlayUrlList->flage,pPlayUrlList->url); 
     			if(strlen(pPlayUrlList->url)>10)
     			    analysisHttpStr(pPlayUrlList->url);
-    			TCP_CLIENT_TRACK_INFO("MSG_PLAYURL %d %s\n",pPlayUrlList->flage,pPlayUrlList->url); 
-    	    }
+    		}
     	    break;
 		case MSG_INTELLIGENT:
     	case MSG_NODIFYCAPSOUNDVALUE:
@@ -483,13 +482,13 @@ int saveAudioDataToMMC(const char *audioBuffer,int length,int flag)
         else 
 			TCP_CLIENT_TRACK_WARN("[music file]success to open,%s\n",path);
     }
-	else if(flag==2)
-	{
+    if(length>0 && audioBuffer!=NULL)
+    {
 		result = f_write(&file, audioBuffer, length, &writenum);
 		if(result != FR_OK)
 			TCP_CLIENT_TRACK_WARN("write failed(%d).\n",result);
-	}
-    else if(flag==3)
+    }
+    if(flag==3)
     {
         result=f_close(&file); 
         if(result != FR_OK)
@@ -514,7 +513,7 @@ int sendAudioData(const char *audioBuffer,int length,int flag,int type)
     m_intelligentData.ts = type;
     m_intelligentData.tipe = flag;
     m_intelligentData.humanSize=1;
-	//saveAudioDataToMMC(audioBuffer,length,flag);
+	saveAudioDataToMMC(audioBuffer,length,flag);
     if(bytSendAudioBuf==NULL || length>MAX_PACKET_LENGTH)
         return -1;
     int iSendAudioLen = 0;  
@@ -605,9 +604,8 @@ void tcp_client_speex_task(void *arg)
 	tcpClientStatus=0;
 	amrSumLength=0;
     msgPacket=malloc(MAX_PACKET_LENGTH);
-    bytSendAudioBuf=malloc(MAX_PACKET_LENGTH);
+    bytSendAudioBuf=malloc(TCP_SEND_DATA_MAX_LEN+0x40);
     amrAudioBuf=malloc(16*TCP_SEND_DATA_MAX_LEN);
-    speexBuffer=malloc(512);
     TCP_CLIENT_TRACK_INFO("tcp client task start\n");
 	while (tcp_client_task_run) 
 	{
@@ -671,8 +669,6 @@ void tcp_client_speex_task(void *arg)
 	    free(msgPacket);
 	if(bytSendAudioBuf) 
 	    free(bytSendAudioBuf);
-    if(speexBuffer)
-        free(speexBuffer);
     if(amrAudioBuf)
         free(amrAudioBuf);
 	OS_ThreadDelete(&tcp_client_task_thread);

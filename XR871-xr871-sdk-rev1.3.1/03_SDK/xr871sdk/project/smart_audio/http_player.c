@@ -59,7 +59,10 @@ int addHttpAudio(char *url)
         if(gHttpUrl.httpUrl[i]==NULL){
             gHttpUrl.httpUrl[i]=malloc(strlen(url)+0x10);
             if(gHttpUrl.httpUrl[i])
+            {
                 strcpy(gHttpUrl.httpUrl[i],url);
+                break;
+            }
         }
     }
     gHttpUrl.totalHttpUrl++; 
@@ -77,8 +80,8 @@ static int  playStartHttpAudio(char *httpStr)
     if(cmdStr==NULL)
         return CMD_STATUS_FAIL;
     memset(cmdStr,0,length);
-    sprintf(cmdStr,"cedarx seturl %s",httpStr);
-    iRet=console_cmd(cmdStr);
+    //sprintf(cmdStr,"cedarx seturl %s",httpStr);
+    iRet=cmd_cedarx_seturl_exec(httpStr);
     if(cmdStr) 
         free(cmdStr); 
     if(iRet!=CMD_STATUS_ACKED && iRet!=CMD_STATUS_OK)
@@ -92,7 +95,10 @@ static int  playStartHttpAudio(char *httpStr)
 
 static int  playHttpAudio(char *httpStr)
 {
+    if(httpStr==NULL || strlen(httpStr)==0)
+        return -1;
     int iRet=playStartHttpAudio(httpStr);
+    #if 0
     if(iRet!=CMD_STATUS_ACKED && iRet!=CMD_STATUS_OK)
     {
         HTTP_PLAYER_TRACK_INFO("cedarx play failure,so cedarx destroy and create\n");
@@ -100,6 +106,7 @@ static int  playHttpAudio(char *httpStr)
         console_cmd("cedarx create");
         iRet=playStartHttpAudio(httpStr); 
     }
+    #endif
     return iRet; 
 }
 
@@ -121,11 +128,8 @@ int  analysisHttpStr(char *httpStr)
 {
     char *result = NULL;
     int iRet=0,i=0;
-    if(strstr(httpStr,".mp3")==NULL)
-        return -1;
     result = strtok(httpStr,";");
-    if(result)
-        initHttpAudioArray();
+    initHttpAudioArray();
     for(i=0;i<MAX_HTTPAUDIO_NUM;i++)
     {
         if(result != NULL){
@@ -270,20 +274,11 @@ void http_player_task(void *arg)
 	    }
 	    if(gHttpUrl.lastHttpUrlFlag < MAX_HTTPAUDIO_NUM && 
            gHttpUrl.lastHttpUrlFlag < gHttpUrl.totalHttpUrl &&
-           gHttpUrl.httpUrl[gHttpUrl.lastHttpUrlFlag]!=NULL &&
-           cedarxControlStatus==1)
+           gHttpUrl.httpUrl[gHttpUrl.lastHttpUrlFlag] != NULL &&
+           cedarxControlStatus==1 && sys_get_status_exec() == STATUS_STOPPED)
         {
-            if(sys_get_status_exec()==STATUS_STOPPED)
-            {
-                gHttpUrl.lastHttpUrlFlag++;
-                if(gHttpUrl.lastHttpUrlFlag < MAX_HTTPAUDIO_NUM && 
-                   gHttpUrl.lastHttpUrlFlag < gHttpUrl.totalHttpUrl &&
-                   gHttpUrl.httpUrl[gHttpUrl.lastHttpUrlFlag]!=NULL &&
-                   cedarxControlStatus==1)
-                {
-                    playHttpAudio(gHttpUrl.httpUrl[gHttpUrl.lastHttpUrlFlag]);
-                }
-            }
+            gHttpUrl.lastHttpUrlFlag=gHttpUrl.lastHttpUrlFlag+1;
+            playHttpAudio(gHttpUrl.httpUrl[gHttpUrl.lastHttpUrlFlag]);
         }  
         OS_MSleep(50);
 	}

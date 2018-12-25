@@ -402,7 +402,7 @@ static enum cmd_status cmd_cedarx_pause_exec(char *cmd)
 	return CMD_STATUS_OK;
 }
 
-static enum cmd_status cmd_cedarx_seturl_exec(char *cmd)
+enum cmd_status cmd_cedarx_seturl_exec(char *cmd)
 {
     if(demoPlayer==NULL)
         return CMD_STATUS_FAIL;

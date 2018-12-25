@@ -49,6 +49,7 @@ enum cmd_status cmd_cedarx_exec(char *cmd);
 uint8_t sys_set_source_exit(uint8_t set);
 uint8_t sys_set_source_exit_get(void);
 uint8_t sys_get_status_exec(void);
+enum cmd_status cmd_cedarx_seturl_exec(char *cmd);
 #endif
 
 #ifdef __cplusplus

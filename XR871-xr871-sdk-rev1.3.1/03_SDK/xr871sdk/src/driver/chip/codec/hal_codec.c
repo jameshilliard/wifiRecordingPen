@@ -84,7 +84,7 @@ struct CODECS {
 #define D_SPEAKER_VOL                   0x10
 #define S_SPEAKER_VOL                   0x10
 #define HEADPHONE_VOL                   0x2b
-#define MAINMIC_ANALOG_GAIN             0x3
+#define MAINMIC_ANALOG_GAIN             0x7
 #define MAINMIC_DIGITAL_GAIN            0x81
 #define HDSETMIC_GAIN                   0x4
 #define ADC_DIGITAL_GAIN                0xb0b0

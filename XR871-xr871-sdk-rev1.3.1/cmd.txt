@@ -74,7 +74,8 @@ cedarx play
 cedarx stop
 cedarx pause
 cedarx seturl file://music/1.mp3
-cedarx seturl file://14978.amr
+cedarx seturl flash://0?addr=2097216&length=128783
+cedarx seturl flash://0?addr=2225999&length=19872
 cedarx seturl http://audio.xmcdn.com/group38/M01/03/15/wKgJo1pho9mwueFFABHZntKAMWw113.mp3
 cedarx getpos
 cedarx seek 6000
@@ -88,7 +89,9 @@ cedarx bufinfo
 cedarx setbuf 14336 6144 24576 10240
 stream fifo 2048, dec buf 3072, pcm buf 16385(frame size 8192).
 
-cedarx rec file://wechat.amr
+cedarx create
+cedarx seturl file://23341.amr
+cedarx play
 
 heap space
 heap info

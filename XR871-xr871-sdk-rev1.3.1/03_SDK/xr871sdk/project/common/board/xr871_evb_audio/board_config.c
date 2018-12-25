@@ -264,7 +264,7 @@ static const CODEC_HWParam codec_hwParam = {
 	.single_speaker_ch   = CODEC_RIGHT,
 	.headset_val         = 0x2b,
 	.mainmic_type		 = CODEC_MIC_ANALOG,
-	.mainmic_analog_val  = 0x3,
+	.mainmic_analog_val  = 0x7,
 	.mainmic_digital_val = 0x81,
 	.headsetmic_val      = 0x4,
 };

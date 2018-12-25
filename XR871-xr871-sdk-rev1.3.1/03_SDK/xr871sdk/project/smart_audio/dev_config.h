@@ -6,7 +6,8 @@
 #define     DEV_SW_VERSION              "v2.3.2000&" 
 #define     DEV_TYPE                    7
 
-#define     DEV_DEBUG_ID                "FMVB1WP4LNLLL3BJWPNU" 
+#define     DEV_DEBUG_ID                "FMVCI8DMYWEKU1L1FVP1"
+                                        //"FMVB1WP4LNLLL3BJWPNU" 
 #define     DEV_DEBUG_PWD               "123456"
 
 #define     DEV_DE_ROUNTER_SERVER       "ipc.100memory.com"

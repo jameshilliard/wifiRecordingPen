@@ -70,7 +70,7 @@ typedef struct console_priv {
     uint32_t        rx_data_cnt;
 
     uint8_t         *buf[CONSOLE_CMD_LINE_BUF_NUM];
-    char             cmdBuf[256];
+    char             cmdBuf[CONSOLE_CMD_LINE_MAX_LEN];
     uint8_t          cmdState;
     int              cmdResult;
     OS_Semaphore_t   cmd_sem;
@@ -424,6 +424,10 @@ int console_cmd(const char *cmd)
 	{
 	    int length=strlen(cmd);
         memset(console->cmdBuf,0,sizeof(console->cmdBuf));
+        if(length>CONSOLE_CMD_LINE_MAX_LEN)
+        {
+            return -1;
+        }
         memcpy((char *)console->cmdBuf,cmd,length);
         CONS_WRN("console cmd and wait '%s' '%s' length=%d %d addr=%p\n",console->cmdBuf,cmd,strlen((char *)console->cmdBuf),length,console->cmdBuf);
       	/* notify console task that a new command is ready */
