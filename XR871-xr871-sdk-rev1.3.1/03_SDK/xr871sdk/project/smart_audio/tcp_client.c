@@ -18,6 +18,7 @@
 #include "rtp_server.h"
 #include "http_player.h"
 #include "fs/fatfs/ff.h"
+#include "encode.h"
 
 #define WAVE_FORMAT_PCM 	1
 struct client
@@ -36,6 +37,7 @@ static OS_Thread_t  tcp_client_task_thread;
 static int          lastSumLength=0;
 static int          amrSumLength=0;
 static char *       msgPacket         = NULL;
+static char *       speexBuffer       = NULL;
 static char *       bytSendAudioBuf   = NULL;
 static char *       amrAudioBuf       = NULL;
 uint8_t             tcpClientStatus   = 0; // 1 run 2 sendBuf and end 0 stop
@@ -544,6 +546,7 @@ int pushPcmAudioData(const char *audioBuffer,int length,int flag,int type)
 {
     if(tcpClientStatus==3)//start and read
     {
+		encodePcmToSpeex(audioBuffer,length,speexBuffer,512,&outLength);
         if((amrSumLength+length)<=20*1024)
         {
             memcpy(amrAudioBuf+amrSumLength,audioBuffer,length);
@@ -605,7 +608,8 @@ void tcp_client_speex_task(void *arg)
 	amrSumLength=0;
     msgPacket=malloc(MAX_PACKET_LENGTH);
     bytSendAudioBuf=malloc(TCP_SEND_DATA_MAX_LEN+0x40);
-    amrAudioBuf=malloc(16*TCP_SEND_DATA_MAX_LEN);
+    amrAudioBuf=malloc(20*TCP_SEND_DATA_MAX_LEN);
+	speexBuffer=malloc(512);
     TCP_CLIENT_TRACK_INFO("tcp client task start\n");
 	while (tcp_client_task_run) 
 	{
@@ -619,7 +623,7 @@ void tcp_client_speex_task(void *arg)
 			case 2:
 			    {
                     length=amrSumLength;
-                    for(i=0;i<16;i++)
+                    for(i=0;i<20;i++)
                     {
                         if(length>TCP_SEND_DATA_MAX_LEN)
                         {
@@ -669,6 +673,8 @@ void tcp_client_speex_task(void *arg)
 	    free(msgPacket);
 	if(bytSendAudioBuf) 
 	    free(bytSendAudioBuf);
+    if(speexBuffer)
+        free(speexBuffer);
     if(amrAudioBuf)
         free(amrAudioBuf);
 	OS_ThreadDelete(&tcp_client_task_thread);
