@@ -176,15 +176,15 @@ PLAYER_CMD read_payer_ctrl_cmd()
 				else if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_REPEAT)
 					cmd = CMD_PLAYER_VOLUME_UP;
 				break;
-            case AD_BUTTON_4:
+			case AD_BUTTON_5:
+				//if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_SHORT_PRESS)
+				//	cmd = CMD_PLAYER_SMART_PLAY;
+				//break;
+		    case AD_BUTTON_4:
 				if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_LONG_PRESS)
 					cmd = CMD_PLAYER_SMART_VOICE_START;
 				else if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_RELEASE)
 					cmd = CMD_PLAYER_SMART_VOICE_STOP;
-				break;
-			case AD_BUTTON_5:
-				if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_SHORT_PRESS)
-					cmd = CMD_PLAYER_SMART_PLAY;
 				break;
 			case AD_BUTTON_0:
 				if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_SHORT_PRESS)

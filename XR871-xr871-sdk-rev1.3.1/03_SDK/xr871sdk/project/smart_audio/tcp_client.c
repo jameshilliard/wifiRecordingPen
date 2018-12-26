@@ -123,6 +123,7 @@ static int  realResolvePacket(const char *ptr,uint32_t size)
 	    case MSG_LOGINRET:
             {
                 procLoginReturnMsg(pMsgHeader); 
+                sendTcpClientStatus(1);
                 TCP_CLIENT_TRACK_INFO("MSG_LOGINRET\n");    
     		} 
     		break;
@@ -510,7 +511,7 @@ int sendAudioData(const char *audioBuffer,int length,int flag,int type)
     m_intelligentData.nChannel = 1;
     m_intelligentData.nSamplePerSec = AUDIOSAMPLERATE;
     m_intelligentData.wBitPerSample = 16;
-    m_intelligentData.wFormat = 8;//1024 PCM 8:amr
+    m_intelligentData.wFormat = 8;//1024 PCM 8:amr 0x00001026 
     m_intelligentData.len = length;
     m_intelligentData.ts = type;
     m_intelligentData.tipe = flag;
@@ -546,24 +547,25 @@ int pushPcmAudioData(const char *audioBuffer,int length,int flag,int type)
 {
     if(tcpClientStatus==3)//start and read
     {
+        int outLength=0;
 		encodePcmToSpeex(audioBuffer,length,speexBuffer,512,&outLength);
-        if((amrSumLength+length)<=20*1024)
+        if((amrSumLength+outLength)<=20*TCP_SEND_DATA_MAX_LEN)
         {
-            memcpy(amrAudioBuf+amrSumLength,audioBuffer,length);
-            amrSumLength=amrSumLength+length;
-        }    
+            memcpy(amrAudioBuf+amrSumLength,speexBuffer,outLength);
+            amrSumLength=amrSumLength+outLength;
+        }   
     }
     return 0;
 }
 
 int sendTcpClientStatus(uint8_t status)
 {
-    const unsigned char amrHeader[6]={0x23,0x21,0x41,0x4d,0x52,0x0A};
+    //const unsigned char amrHeader[6]={0x23,0x21,0x41,0x4d,0x52,0x0A};
     tcpClientStatus=status;
     if(tcpClientStatus==1)
     {
-        memcpy(amrAudioBuf,amrHeader,sizeof(amrHeader));
-        amrSumLength=sizeof(amrHeader);
+       //memcpy(amrAudioBuf,amrHeader,sizeof(amrHeader));
+       //amrSumLength=sizeof(amrHeader);
     }
     return tcpClientStatus;
 }
@@ -610,6 +612,7 @@ void tcp_client_speex_task(void *arg)
     bytSendAudioBuf=malloc(TCP_SEND_DATA_MAX_LEN+0x40);
     amrAudioBuf=malloc(20*TCP_SEND_DATA_MAX_LEN);
 	speexBuffer=malloc(512);
+	initEncodeModule();
     TCP_CLIENT_TRACK_INFO("tcp client task start\n");
 	while (tcp_client_task_run) 
 	{
@@ -677,6 +680,7 @@ void tcp_client_speex_task(void *arg)
         free(speexBuffer);
     if(amrAudioBuf)
         free(amrAudioBuf);
+    destroyEncodeModule();
 	OS_ThreadDelete(&tcp_client_task_thread);
 	TCP_CLIENT_TRACK_INFO("tcp client task end\n");
 }
@@ -689,7 +693,7 @@ Component_Status tcp_client_task_init()
 		                tcp_client_speex_task,
 		               	NULL,
 		                OS_THREAD_PRIO_APP,
-		                RTP_SERVER_THREAD_STACK_SIZE) != OS_OK) {
+		                RTP_SERVER_THREAD_STACK_SIZE*2) != OS_OK) {
 		TCP_CLIENT_TRACK_WARN("tcp client thread create error\n");
 		return COMP_ERROR;
 	}

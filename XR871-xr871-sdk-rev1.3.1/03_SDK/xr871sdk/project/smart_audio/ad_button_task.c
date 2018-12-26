@@ -92,7 +92,7 @@ AD_Button_Info AD_Button_Register[AD_BUTTON_NUM] = {
 	{&Ad_Button_2_Repeat, 0, 10, AD_BUTTON_2_VALUE, AD_BUTTON_2},    //音量－
 	{&Ad_Button_2_Repeat, 0, 10, AD_BUTTON_3_VALUE, AD_BUTTON_3},    //音量+
 	{NULL, 400, 10, AD_BUTTON_4_VALUE, AD_BUTTON_4},    //上传音频
-	{NULL, 0, 10, AD_BUTTON_5_VALUE, AD_BUTTON_5},
+	{NULL, 400, 10, AD_BUTTON_5_VALUE, AD_BUTTON_5},
 };
 
 static AD_Button_Cmd_Info AD_Button_Cmd;

@@ -536,7 +536,7 @@ int echocloud_cedarx_rec_create_exec(char *cmd, void *arg)
         type = XRECODER_AUDIO_ENCODE_PCM_TYPE;
     else
     {
-        type = XRECODER_AUDIO_ENCODE_AMR_TYPE;
+        type = XRECODER_AUDIO_ENCODE_PCM_TYPE;
         printf("do not support this encode type,default pcm\n");
     }
 
@@ -595,7 +595,9 @@ int echocloud_cedarx_rec_destory_exec(void)
 
 static uint32_t httpc_record_callback(void*buf,uint32_t size)
 {
-    //printf("http record %d\n",size);
+    printf("http record %d\n",size);
+    pushPcmAudioData((char *)buf,size,2,1);
+    #if 0
     int i=0;
     int length=size;
     for(i=0;i<10;i++)
@@ -612,7 +614,7 @@ static uint32_t httpc_record_callback(void*buf,uint32_t size)
             break;
         }
     }
-
+    #endif
 	return size;
 }
 

@@ -76,12 +76,12 @@ int encodePcmToSpeex(const char *pcmBuf,int length,char *speexBuf,int bufSize,in
         /*Encode the frame*/
         printf("encodePcmToSpeex 0 %d %d\n",nbBytes,encodeFrameSize);
         speex_encode_int(state, in+count*frameSize, &bits);
-        printf("encodePcmToSpeex 1 %d %d\n",nbBytes,encodeFrameSize);
+         printf("encodePcmToSpeex 1 %d %d\n",nbBytes,encodeFrameSize);
         /*Copy the bits to an array of char that can be written*/
-        nbBytes = speex_bits_write(&bits, cbits,encodeFrameSize*sizeof(short));
+        nbBytes = speex_bits_write(&bits, cbits,frameSize*sizeof(short));
 		//if(count==0)
 		{
-			printf("encodePcmToSpeex 2 %d %d\n",nbBytes,encodeFrameSize);
+			printf("encodePcmToSpeex 2 %d\n",nbBytes);
 		}
         memcpy(speexBuf+*outLength,cbits,nbBytes);
         *outLength+=nbBytes;
@@ -89,4 +89,44 @@ int encodePcmToSpeex(const char *pcmBuf,int length,char *speexBuf,int bufSize,in
         size=size-frameSize;
     }
     return *outLength;
+}
+
+int speexEncodeMain(int argc, char **argv)
+{
+   char *inFile;
+   char *outFile;
+   FILE *fin;
+   FILE *fstdout;
+   inFile = argv[1];
+   fin = fopen(inFile, "r");
+   if(fin==NULL)
+   {
+        printf("error:fopen %s\n",inFile);
+   }
+   outFile=argv[2];
+   fstdout=fopen(outFile, "w+");
+   if(fstdout==NULL)
+   {
+        printf("error:fopen %s\n",outFile);
+   }
+   char *pcmBuffer=malloc(100*1024);
+   int pcmLength=fread(pcmBuffer,1,100*1024,fin);
+   fclose(fin);
+   char *speexBuffer=malloc(100*1024);
+   int outLength=0;
+   initEncodeModule();
+   encodePcmToSpeex(pcmBuffer,pcmLength,speexBuffer,100*1024,&outLength);
+   if(outLength>0)
+   {
+        fwrite(speexBuffer,1,outLength,fstdout);
+        fclose(fstdout);
+   }
+   destroyEncodeModule();
+   return 0;
+}
+
+int main(int argc, char **argv)
+{
+	speexEncodeMain(argc,argv);
+	return 0;
 }
