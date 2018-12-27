@@ -108,7 +108,7 @@ static int loginRounterServer(LoginReturnInfo *returnInfo,char *cmdResponse)
     char secret[80]={0};
     int iRet=calSecret(DEV_DEBUG_ID,secret);
 	sprintf(httpServerAddr,DEV_LOGIN_CONSERVER, DEV_DE_ROUNTER_SERVER);
-	sprintf(httpCmdStr,"%s id=%s&pwd=%s&HWVersion=%s&SWVersion=%s&devType=7",httpServerAddr,DEV_DEBUG_ID,secret,DEV_HW_VERSION,DEV_SW_VERSION);
+	sprintf(httpCmdStr,"%s ipc_id=%s&pwd=%s&HWVersion=%s&SWVersion=%s&devType=7",httpServerAddr,DEV_DEBUG_ID,secret,DEV_HW_VERSION,DEV_SW_VERSION);
     iRet=httpc_cmd_self(httpCmdStr,cmdResponse); 
     RTP_SERVER_TRACK_INFO("loginRounterServer: iRet=%d StrcmdResponse=%s end\n",iRet,cmdResponse);
     if(iRet==0){

@@ -10,7 +10,9 @@
                                         //"FMVB1WP4LNLLL3BJWPNU" 
 #define     DEV_DEBUG_PWD               "123456"
 
-#define     DEV_DE_ROUNTER_SERVER       "ipc.100memory.com"
+//#define     DEV_DE_ROUNTER_SERVER       "ipc.100memory.com"
+#define     DEV_DE_ROUNTER_SERVER       "thzn_td_dev.100memory.com"
+
 //µÇÂ¼Ö¸Áî
 #define 	DEV_LOGIN_CONSERVER  	    "post http://%s/cmd.php?act=login"
 //µÇ³öÖ¸Áî

@@ -26,7 +26,7 @@ int initEncodeModule(void)
     speex_encoder_ctl(state, SPEEX_SET_QUALITY, &tmp);
     speex_encoder_ctl(state, SPEEX_GET_FRAME_SIZE, &encodeFrameSize);
 	printf("frame_size=%d\n",encodeFrameSize);
-	cbits=(char *)malloc(encodeFrameSize*sizeof(short));
+	cbits=(char *)malloc(encodeFrameSize+40);
     if(cbits==NULL)
     {
         printf("cbits is malloc failure\n");
@@ -60,33 +60,18 @@ int encodePcmToSpeex(const char *pcmBuf,int length,char *speexBuf,int bufSize,in
         printf("encodePcmToSpeex error\n");
         return -1;
     }
-    short int *in=(short int *)pcmBuf;
-    int size=length/2;
     int nbBytes=0;
-    int frameSize=encodeFrameSize;
-    int count=0;
     *outLength=0;
-    while(size>0)
-    {
-        if(size<encodeFrameSize){
-            frameSize=size;
-        }
-        /*Flush all the bits in the struct so we can encode a new frame*/
-        speex_bits_reset(&bits);
-        /*Encode the frame*/
-        printf("encodePcmToSpeex 0 %d %d\n",nbBytes,encodeFrameSize);
-        speex_encode_int(state, in+count*frameSize, &bits);
-        printf("encodePcmToSpeex 1 %d %d\n",nbBytes,encodeFrameSize);
-        /*Copy the bits to an array of char that can be written*/
-        nbBytes = speex_bits_write(&bits, cbits,encodeFrameSize*sizeof(short));
-		//if(count==0)
-		{
-			printf("encodePcmToSpeex 2 %d %d\n",nbBytes,encodeFrameSize);
-		}
-        memcpy(speexBuf+*outLength,cbits,nbBytes);
-        *outLength+=nbBytes;
-        count++;
-        size=size-frameSize;
-    }
+    /*Flush all the bits in the struct so we can encode a new frame*/
+    speex_bits_reset(&bits);
+    /*Encode the frame*/
+    speex_encode_int(state,(short int *)pcmBuf, &bits);
+    /*Copy the bits to an array of char that can be written*/
+    nbBytes = speex_bits_write(&bits,cbits,encodeFrameSize+40);
+	if(nbBytes>0){
+		memcpy(speexBuf,cbits,nbBytes);
+		*outLength=nbBytes;
+	}
+    //printf("encodePcmToSpeex %d %d\n",nbBytes,encodeFrameSize);
     return *outLength;
 }

@@ -529,10 +529,10 @@ int sb_encode(void *state, void *vin, SpeexBits *bits)
    spx_word16_t *high;
    VARDECL(spx_word16_t *low_exc_rms);
    VARDECL(spx_word16_t *low_innov_rms);
-   const SpeexSBMode *mode;
+   //const SpeexSBMode *mode;
    spx_int32_t dtx;
    spx_word16_t *in = (spx_word16_t*)vin;
-   spx_word16_t e_low=0, e_high=0;
+   //spx_word16_t e_low=0, e_high=0;
    VARDECL(spx_coef_t *lpc);
    VARDECL(spx_coef_t *interp_lpc);
    VARDECL(spx_coef_t *bw_lpc1);
@@ -544,7 +544,7 @@ int sb_encode(void *state, void *vin, SpeexBits *bits)
 
    st = (SBEncState*)state;
    stack=st->stack;
-   mode = (const SpeexSBMode*)(st->mode->mode);
+   //mode = (const SpeexSBMode*)(st->mode->mode);
    low = in;
    high = in+st->frame_size;
 

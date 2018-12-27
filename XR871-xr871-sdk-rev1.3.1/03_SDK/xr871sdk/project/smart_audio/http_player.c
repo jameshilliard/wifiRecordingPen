@@ -177,9 +177,9 @@ PLAYER_CMD read_payer_ctrl_cmd()
 					cmd = CMD_PLAYER_VOLUME_UP;
 				break;
 			case AD_BUTTON_5:
-				//if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_SHORT_PRESS)
-				//	cmd = CMD_PLAYER_SMART_PLAY;
-				//break;
+				if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_SHORT_PRESS)
+					cmd = CMD_PLAYER_SMART_PLAY;
+				break;
 		    case AD_BUTTON_4:
 				if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_LONG_PRESS)
 					cmd = CMD_PLAYER_SMART_VOICE_START;
@@ -238,20 +238,24 @@ void http_player_task(void *arg)
 	        setVolume(sysInfo->volume);
 	        break;
 	   	case CMD_PLAYER_SMART_VOICE_START:
+            if(getWifiState() == WLAN_STA_STATE_DISCONNECTED || 
+               getTcpClientState() != STATE_TCP_CLINET_CONNECTED ||
+               getTcpClientLoginState() != 1)
+                  break;
 	   	    HTTP_PLAYER_TRACK_INFO("buttonCmd CMD_PLAYER_SMART_VOICE_START\n");
 	   	    cedarxControlStatus=0;
 	   	    initHttpAudioArray();
 	   	    if(sys_get_status_exec()!= STATUS_STOPPED)
 	   	        console_cmd("cedarx stop");
-	   	    console_cmd("cedarx rec callback://");
+	   	    //console_cmd("cedarx rec callback://");
 	   	    //console_cmd("cedarx rec file://wechat.pcm");
-	   	    //console_cmd("audio httpcap 16000 1 record.pcm");
+	   	    console_cmd("audio httpcap 16000 1 record.pcm");
 	   	    sendTcpClientStatus(1);
 	        break; 
 		case CMD_PLAYER_SMART_VOICE_STOP:
 	   	    HTTP_PLAYER_TRACK_INFO("buttonCmd CMD_PLAYER_SMART_VOICE_STOP\n");
-	   	    console_cmd("cedarx end"); 
-	   	    //console_cmd("audio end");
+	   	    //console_cmd("cedarx end"); 
+	   	    console_cmd("audio end");
 	   	    sendTcpClientStatus(2);
             break;          
 	    case CMD_PLAYER_SMART_PLAY:

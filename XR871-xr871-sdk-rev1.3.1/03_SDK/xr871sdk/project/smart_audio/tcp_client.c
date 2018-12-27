@@ -19,6 +19,7 @@
 #include "http_player.h"
 #include "fs/fatfs/ff.h"
 #include "encode.h"
+#include "stack.h" 
 
 #define WAVE_FORMAT_PCM 	1
 struct client
@@ -41,6 +42,15 @@ static char *       speexBuffer       = NULL;
 static char *       bytSendAudioBuf   = NULL;
 static char *       amrAudioBuf       = NULL;
 uint8_t             tcpClientStatus   = 0; // 1 run 2 sendBuf and end 0 stop
+SNode       *       top               = NULL;
+static OS_Mutex_t   mutexStack;
+
+#define stack_mutex_create(mtx)  (OS_MutexCreate(mtx) == OS_OK ? 0 : -1)
+#define stack_mutex_delete(mtx)  OS_MutexDelete(mtx)
+//#define stack_mutex_lock(mtx)    OS_MutexLock(mtx, OS_WAIT_FOREVER)
+//#define stack_mutex_unlock(mtx)  OS_MutexUnlock(mtx)
+#define stack_mutex_lock(mtx)   
+#define stack_mutex_unlock(mtx)  
 
 static void dumpHex(const char* data,int len)
 {
@@ -144,8 +154,10 @@ static int  realResolvePacket(const char *ptr,uint32_t size)
         	{
         	    pPlayUrl = (struct TMSG_REQUESTPLAYURL*)pMsgHeader;
         	    TCP_CLIENT_TRACK_INFO("MSG_PLAYURL %d %s %d\n",pPlayUrl->flage,pPlayUrl->url,strlen(pPlayUrl->url)); 
-        	    if(strlen(pPlayUrl->url)>10)
-    			    analysisHttpStr(pPlayUrl->url);
+				if(pPlayUrl->flage!=100){
+					if(strlen(pPlayUrl->url)>10)
+						analysisHttpStr(pPlayUrl->url);
+				}
         	}
     		break;
     	case MSG_PLAYURLLIST:
@@ -511,14 +523,14 @@ int sendAudioData(const char *audioBuffer,int length,int flag,int type)
     m_intelligentData.nChannel = 1;
     m_intelligentData.nSamplePerSec = AUDIOSAMPLERATE;
     m_intelligentData.wBitPerSample = 16;
-    m_intelligentData.wFormat = 8;//1024 PCM 8:amr 0x00001026 
+    m_intelligentData.wFormat = 0x00001026;//1024 PCM 8:amr 0x00001026 
     m_intelligentData.len = length;
     m_intelligentData.ts = type;
     m_intelligentData.tipe = flag;
     m_intelligentData.humanSize=1;
-	saveAudioDataToMMC(audioBuffer,length,flag);
+	//saveAudioDataToMMC(audioBuffer,length,flag);
     if(bytSendAudioBuf==NULL || length>MAX_PACKET_LENGTH)
-        return -1;
+        return 1;
     int iSendAudioLen = 0;  
     int sumLength=sizeof(INTELLIGENT_DATA) + length + 2;
     memcpy(bytSendAudioBuf+iSendAudioLen, &sumLength, sizeof(sumLength));
@@ -533,7 +545,6 @@ int sendAudioData(const char *audioBuffer,int length,int flag,int type)
     int iRet = tcp_send_message((char*)bytSendAudioBuf,iSendAudioLen);
     if(iRet < 0){
         TCP_CLIENT_TRACK_WARN("msg: audio fail,iRet=%d\n",iRet);
-        iRet=-1;
     } 
     else
     {
@@ -543,30 +554,58 @@ int sendAudioData(const char *audioBuffer,int length,int flag,int type)
 	return iRet;
 }
 
+
 int pushPcmAudioData(const char *audioBuffer,int length,int flag,int type)
 {
+
     if(tcpClientStatus==3)//start and read
     {
+        stack_mutex_lock(&mutexStack);
+        pushBuf(&top,audioBuffer,length);
+        stack_mutex_unlock(&mutexStack);  
+        #if 0
         int outLength=0;
 		encodePcmToSpeex(audioBuffer,length,speexBuffer,512,&outLength);
         if((amrSumLength+outLength)<=20*TCP_SEND_DATA_MAX_LEN)
         {
             memcpy(amrAudioBuf+amrSumLength,speexBuffer,outLength);
             amrSumLength=amrSumLength+outLength;
-        }   
+        }  
+        //TCP_CLIENT_TRACK_WARN("msg:  length=%d\n", outLength);
+        #endif
+    }
+    return 0;
+}
+
+int pushEncodePcmToSpeex(const char *audioBuffer,int length)
+{
+    int outLength=0;
+	encodePcmToSpeex(audioBuffer,length,speexBuffer,64,&outLength);
+    if((amrSumLength+outLength)<=20*TCP_SEND_DATA_MAX_LEN)
+    {
+        memcpy(amrAudioBuf+amrSumLength,speexBuffer,outLength);
+        amrSumLength=amrSumLength+outLength;
     }
     return 0;
 }
 
 int sendTcpClientStatus(uint8_t status)
 {
-    //const unsigned char amrHeader[6]={0x23,0x21,0x41,0x4d,0x52,0x0A};
-    tcpClientStatus=status;
-    if(tcpClientStatus==1)
+    if(status==2 && tcpClientStatus==0)
     {
-       //memcpy(amrAudioBuf,amrHeader,sizeof(amrHeader));
-       //amrSumLength=sizeof(amrHeader);
+        return -1;
     }
+    tcpClientStatus=status;
+    if(status==1)
+    {
+        stack_mutex_lock(&mutexStack);
+        clearBuf(&top);
+        stack_mutex_unlock(&mutexStack);
+        amrSumLength=0;
+    }
+    //const unsigned char amrHeader[6]={0x23,0x21,0x41,0x4d,0x52,0x0A};
+    //memcpy(amrAudioBuf,amrHeader,sizeof(amrHeader));
+    //amrSumLength=sizeof(amrHeader);
     return tcpClientStatus;
 }
 
@@ -601,32 +640,91 @@ int sendAliveDataTask(const char *m_szCameraID)
     return iRet;
 }
 
+#define SPEEX_DATA_MAX_LEN	320
 void tcp_client_speex_task(void *arg)
 {
     int iRet=0;
     int i=0;
     int length=0;
+    int lesslength=0;
+    int flag=0;
+    int audioBufLength=0;
+    int size=0;
+    char *buf=NULL;
+    Elem elem;
+    
 	tcpClientStatus=0;
 	amrSumLength=0;
     msgPacket=malloc(MAX_PACKET_LENGTH);
     bytSendAudioBuf=malloc(TCP_SEND_DATA_MAX_LEN+0x40);
-    amrAudioBuf=malloc(20*TCP_SEND_DATA_MAX_LEN);
-	speexBuffer=malloc(512);
+    amrAudioBuf=malloc(30*TCP_SEND_DATA_MAX_LEN);
+	speexBuffer=malloc(0x40);
 	initEncodeModule();
+	stack_mutex_create(&mutexStack);
+	initStack(&top);
     TCP_CLIENT_TRACK_INFO("tcp client task start\n");
 	while (tcp_client_task_run) 
 	{
 		switch(tcpClientStatus)
 		{
 			case 1:
-				//sendAudioData(NULL,0,1,7);
+			    audioBufLength=0;
 				tcpClientStatus=3;
 				TCP_CLIENT_TRACK_INFO("tcp_client_speex_task start\n");
 				break;
 			case 2:
+			case 3:
+                {
+                    if(isEmpty(top)==0)
+                    {
+                        stack_mutex_lock(&mutexStack);
+                        elem=pop(&top);
+                        stack_mutex_unlock(&mutexStack);
+                        if(elem.length>0 && elem.audioBuffer!=NULL)
+                        {
+                            buf=(char *)elem.audioBuffer;
+                            size=elem.length;
+                            lesslength=size;
+                            if(audioBufLength>0)
+                            {
+                                flag=SPEEX_DATA_MAX_LEN-audioBufLength;
+                                lesslength=size-flag;
+                                memcpy(bytSendAudioBuf+audioBufLength,buf,flag);
+                                pushEncodePcmToSpeex((char *)bytSendAudioBuf,SPEEX_DATA_MAX_LEN);
+                                audioBufLength=0;
+                            }
+                            for(i=0;i<20;i++)
+                            {
+                                if(lesslength>SPEEX_DATA_MAX_LEN)
+                                {
+                                	pushEncodePcmToSpeex((char *)buf+flag+SPEEX_DATA_MAX_LEN*i,SPEEX_DATA_MAX_LEN);
+                                    lesslength=lesslength-SPEEX_DATA_MAX_LEN;
+                                }
+                                else
+                                {
+                        			memcpy(bytSendAudioBuf,(char *)buf+(size-lesslength),lesslength);
+                        			audioBufLength=lesslength; 
+                                    break;
+                                }
+                            } 
+                            free(elem.audioBuffer);
+                            elem.audioBuffer=NULL;
+                        }
+                    }
+                    else
+                    {
+                        if(tcpClientStatus==2)
+                        {
+                            tcpClientStatus=5;
+                            printf("the sum Audio Data length=%d\n",amrSumLength);
+                        }   
+                    }
+                }	
+			    break;
+			case 5:
 			    {
                     length=amrSumLength;
-                    for(i=0;i<20;i++)
+                    for(i=0;i<30;i++)
                     {
                         if(length>TCP_SEND_DATA_MAX_LEN)
                         {
@@ -658,19 +756,25 @@ void tcp_client_speex_task(void *arg)
                     }
 			    }
 			    break;
-			case 3:
-				break;
 			case 4:
 				sendAudioData(NULL,0,3,7);
 				tcpClientStatus=0;
 				TCP_CLIENT_TRACK_INFO("tcp_client_speex_task over\n");
 				break;
 			default:
+			    tcpClientStatus=0;
 				OS_MSleep(100);
 				break;
 		}
-		if(tcpClientStatus!=2 && tcpClientStatus!=4)
-		    OS_MSleep(100);
+
+		if(tcpClientStatus==3 || tcpClientStatus==2)
+		    OS_MSleep(10);
+		else if(tcpClientStatus==5)
+		{
+		    
+		}
+	    else
+	        OS_MSleep(100);   
 	}
 	if(msgPacket)
 	    free(msgPacket);
@@ -681,6 +785,8 @@ void tcp_client_speex_task(void *arg)
     if(amrAudioBuf)
         free(amrAudioBuf);
     destroyEncodeModule();
+    destoryStack(&top);
+    stack_mutex_delete(&mutexStack);
 	OS_ThreadDelete(&tcp_client_task_thread);
 	TCP_CLIENT_TRACK_INFO("tcp client task end\n");
 }

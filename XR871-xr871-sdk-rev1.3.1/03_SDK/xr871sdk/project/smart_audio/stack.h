@@ -8,8 +8,6 @@ typedef struct Elem_
 {
 	char *audioBuffer;
 	int   length;
-	int   ts;               
-	int   dataFlag;			//dataFlag=-1;//is error;
 }Elem;
 //#define Elem int
 
@@ -48,7 +46,7 @@ extern "C" {
 
 	int clearBuf(SNode **top);
 	
-	int pushBuf(SNode **top,const char *buf,int length,int type,int flag);
+	int pushBuf(SNode **top,const char *buf,int length);
 	
 #ifdef __cplusplus
 }

@@ -75,7 +75,7 @@ static uint32_t sampleRate[SR_NUM] = {8000, 11025, 12000, 16000, 22050, 24000, 3
 		} \
 	} while (0)
 
-#define AUDIO_THREAD_STACK_SIZE		(2 * 1024)
+#define AUDIO_THREAD_STACK_SIZE		(16  * 1024)
 static OS_Thread_t g_audio_stream_thread;
 static OS_Thread_t g_audio_control_thread;
 static uint8_t g_audio_task_end;
@@ -218,20 +218,8 @@ void http_cap_exec(void *cmd)
 				CMD_ERR("read data failed(%d), line:%d\n", ret, __LINE__);
 				break;
             }
-            length=pcm_buf_size;
-            for(i=0;i<10;i++)
-            {
-                if(length>TCP_SEND_DATA_MAX_LEN)
-                {
-                	pushPcmAudioData((char *)pcm_data+TCP_SEND_DATA_MAX_LEN*i,TCP_SEND_DATA_MAX_LEN,2,1);
-                    length=pcm_buf_size-TCP_SEND_DATA_MAX_LEN*(i+1);
-                }
-                else
-                {
-                    pushPcmAudioData((char *)pcm_data+TCP_SEND_DATA_MAX_LEN*i,length,2,1); 
-                    break;
-                }
-            }
+			length=pcm_buf_size;
+			pushPcmAudioData((char *)pcm_data,length,2,1); 
     }
     snd_pcm_close(SOUND_CAPCARD, PCM_IN);
 

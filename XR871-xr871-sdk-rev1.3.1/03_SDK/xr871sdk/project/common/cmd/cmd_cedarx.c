@@ -56,9 +56,10 @@ typedef struct DemoPlayerContext
     int             mStatus;
     OS_Semaphore_t  mSem;
 }DemoPlayerContext;
-static DemoPlayerContext *demoPlayer=NULL;
 
-volatile static uint8_t set_source_exit = 0;
+
+static DemoPlayerContext *demoPlayer = NULL;
+volatile static uint8_t   set_source_exit = 0;
 
 
 uint8_t sys_set_source_exit(uint8_t set)
@@ -345,7 +346,6 @@ static enum cmd_status cmd_cedarx_create_exec(char *cmd)
     //	XPlayerSetBuffer(demoPlayer->mAwPlayer, &bufcfg_HITH);
 
     SoundCtrl* sound = SoundDeviceCreate();
-
     XPlayerSetAudioSink(demoPlayer->mAwPlayer, (void*)sound);
 
 	return CMD_STATUS_OK;
@@ -568,7 +568,6 @@ int echocloud_cedarx_rec_create_exec(char *cmd, void *arg)
     audioConfig.nChan = 1;
     audioConfig.nSamplerate = AUDIOSAMPLERATE;
     audioConfig.nSamplerBits = 16;
-
     XRecordSetDataDstUrl(xrecord, cmd, arg, NULL);
     XRecordSetAudioEncodeType(xrecord, type, &audioConfig);
 
@@ -592,29 +591,9 @@ int echocloud_cedarx_rec_destory_exec(void)
     return 0;
 }
 
-
 static uint32_t httpc_record_callback(void*buf,uint32_t size)
 {
-    printf("http record %d\n",size);
     pushPcmAudioData((char *)buf,size,2,1);
-    #if 0
-    int i=0;
-    int length=size;
-    for(i=0;i<10;i++)
-    {
-        if(length>TCP_SEND_DATA_MAX_LEN)
-        {
-        	pushPcmAudioData((char *)buf+TCP_SEND_DATA_MAX_LEN*i,TCP_SEND_DATA_MAX_LEN,2,1);
-            length=size-TCP_SEND_DATA_MAX_LEN*(i+1);
-        }
-        else
-        {
-        
-            pushPcmAudioData((char *)buf+TCP_SEND_DATA_MAX_LEN*i,length,2,1); 
-            break;
-        }
-    }
-    #endif
 	return size;
 }
 

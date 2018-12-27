@@ -102,10 +102,10 @@ int speexDecondeMain(int argc, char **argv)
         printf("error:fopen %s\n",outFile);
    }
    
-   char *speexBuffer=malloc(100*1024);
+   char *speexBuffer=malloc(1024*1024);
    int speexLength=fread(speexBuffer,1,100*1024,fin);
    fclose(fin);
-   char *pcmBuffer=malloc(100*1024);
+   char *pcmBuffer=malloc(1024*1024);
    int outLength=0;
    initDecodeModule();
    decodeSpeexToPcm(speexBuffer,speexLength,pcmBuffer,100*1024,&outLength);

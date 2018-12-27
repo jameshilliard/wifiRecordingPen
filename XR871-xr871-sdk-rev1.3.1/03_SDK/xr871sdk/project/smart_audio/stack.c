@@ -46,8 +46,8 @@ Elem pop(SNode **top)
 	Elem e;
 	if(!(*top)){
 		printf("%s():%d no such a stack\n",__func__, __LINE__);
-		//exit(-1);
-		e.dataFlag=-1;
+		e.audioBuffer=NULL;
+		e.length=-1;
 		return e;
 	}
 	temp=(*top);
@@ -152,7 +152,7 @@ int clearBuf(SNode **top)
     return 0;
 }
 
-int pushBuf(SNode **top,const char *buf,int length,int type,int flag)
+int pushBuf(SNode **top,const char *buf,int length)
 {
 	SNode *temp;
 	//judge the stack is available
@@ -176,8 +176,6 @@ int pushBuf(SNode **top,const char *buf,int length,int type,int flag)
 	memcpy(stackBuf,buf,length);
 	temp->data.audioBuffer=stackBuf;
 	temp->data.length=length;
-	temp->data.ts=flag;
-	temp->data.dataFlag=type;
 	temp->next=NULL;
 	//push the node to the stack
 	SNode *tempLast;
@@ -186,6 +184,5 @@ int pushBuf(SNode **top,const char *buf,int length,int type,int flag)
 		tempLast=tempLast->next;
 	}
 	tempLast->next=temp;
-	
 	return 0;
 }
