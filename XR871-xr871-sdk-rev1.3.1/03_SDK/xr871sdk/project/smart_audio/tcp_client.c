@@ -409,7 +409,6 @@ err_t tcp_client_send(struct tcp_pcb *tpcb, struct client *tcpClient)
                 pbuf_ref(tcpClient->p_tx);
             }
             pbuf_free(ptr);
-            ptr=NULL;
         }
         else if(wr_err == ERR_MEM){
              /* we are low on memory, try later, defer to poll */
@@ -581,7 +580,7 @@ int pushEncodePcmToSpeex(const char *audioBuffer,int length)
 {
     int outLength=0;
 	encodePcmToSpeex(audioBuffer,length,speexBuffer,64,&outLength);
-    if((amrSumLength+outLength)<=20*TCP_SEND_DATA_MAX_LEN)
+    if((amrSumLength+outLength)<=30*TCP_SEND_DATA_MAX_LEN)
     {
         memcpy(amrAudioBuf+amrSumLength,speexBuffer,outLength);
         amrSumLength=amrSumLength+outLength;
@@ -753,6 +752,7 @@ void tcp_client_speex_task(void *arg)
 	                    {
 	                        TCP_CLIENT_TRACK_WARN("msg: sendAudioData fail,iRet=%d,i=%d\n",iRet,i);
 	                    }
+	                    OS_MSleep(2);
                     }
 			    }
 			    break;
@@ -769,11 +769,7 @@ void tcp_client_speex_task(void *arg)
 
 		if(tcpClientStatus==3 || tcpClientStatus==2)
 		    OS_MSleep(10);
-		else if(tcpClientStatus==5)
-		{
-		    
-		}
-	    else
+        else
 	        OS_MSleep(100);   
 	}
 	if(msgPacket)

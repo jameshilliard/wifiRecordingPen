@@ -20,7 +20,7 @@
 															__func__, __LINE__, ##arg)
 
 #define TCP_CLIENT_THREAD_STACK_SIZE	1024*2
-#define TCP_SEND_DATA_MAX_LEN    (1300)
+#define TCP_SEND_DATA_MAX_LEN           (1140)
 
 
 enum    TCP_CLIENT_STATE{
