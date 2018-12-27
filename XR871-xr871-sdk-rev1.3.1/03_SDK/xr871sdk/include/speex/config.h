@@ -15,9 +15,12 @@
 
 /* Disable all parts of the API that are using floats */
 /* #undef DISABLE_FLOAT_API */
+#define DISABLE_FLOAT_API /**/
+//#define DISABLE_WIDEBAND
 
 /* Disable VBR and VAD from the codec */
 /* #undef DISABLE_VBR */
+#define DISABLE_VBR /**/
 
 /* Enable valgrind extra checks */
 /* #undef ENABLE_VALGRIND */

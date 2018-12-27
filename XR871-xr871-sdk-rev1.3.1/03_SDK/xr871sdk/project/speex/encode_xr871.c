@@ -1,4 +1,4 @@
-#include <speex/speex.h>
+#include "../include/speex/speex.h"
 #include <string.h>
 #include <stdio.h>
 #include <malloc.h>
