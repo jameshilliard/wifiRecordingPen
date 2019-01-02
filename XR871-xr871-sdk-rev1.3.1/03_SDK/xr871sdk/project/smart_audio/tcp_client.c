@@ -28,6 +28,7 @@
 #define AUDIO_DATA_MAX_LEN      (0x1000)
 #define FLASH_AUDIO_ADDR        (0x280000)
 #define FLASH_4K                (0x1000)
+#define FLASH_4K_MAX            (0x40)
 #define WAVE_FORMAT_PCM 	    1
 #define SPEEX_DATA_MAX_LEN	    (320)
 
@@ -46,6 +47,7 @@ static uint8_t      tcp_client_task_run = 0;
 static OS_Thread_t  tcp_client_task_thread;
 static int          lastSumLength=0;
 static int          amrSumLength=0;
+static int          amrFlashOpenFlag=0;
 static int          amrFlashNum=0;
 static char *       msgPacket         = NULL;
 static char *       speexBuffer       = NULL;
@@ -86,23 +88,29 @@ static void dumpHex(const char* data,int len)
 
 static int flash_start()
 {
-	if (HAL_Flash_Open(MFLASH, 5000) != HAL_OK)
-	{
-		TCP_CLIENT_TRACK_INFO("flash driver open failed\n");
-		return -1;
-	}
-
+    if(amrFlashOpenFlag==0)
+    {
+    	if (HAL_Flash_Open(MFLASH, 5000) != HAL_OK)
+    	{
+    		TCP_CLIENT_TRACK_INFO("flash driver open failed\n");
+    		return -1;
+    	}
+    	amrFlashOpenFlag=1;
+    }
 	return 0;
 }
 
 static int flash_stop()
 {
-	/* deinie driver */
-	if (HAL_Flash_Close(MFLASH) != HAL_OK) {
-		TCP_CLIENT_TRACK_INFO("flash driver close failed\n");
-		return -1;
+	if(amrFlashOpenFlag==1)
+	{
+    	if (HAL_Flash_Close(MFLASH) != HAL_OK){
+    	    amrFlashOpenFlag=0;
+    		TCP_CLIENT_TRACK_INFO("flash driver close failed\n");
+    		return -1;
+    	}
+    	amrFlashOpenFlag=0;
 	}
-
 	return 0;
 }
 
@@ -110,7 +118,8 @@ static int flash_stop()
 static int flash_overwrite(uint32_t addr,uint8_t *wbuf,uint32_t size)
 {
 	int ret=-1;
-	/* write */
+	if(amrFlashOpenFlag!=1)
+	    return ret;
 	if ((ret = HAL_Flash_Overwrite(MFLASH, addr, wbuf, size)) != HAL_OK) {
 		CMD_ERR("flash write failed: %d\n", ret);
 	}
@@ -124,10 +133,12 @@ static int flash_overwrite(uint32_t addr,uint8_t *wbuf,uint32_t size)
 static int flash_read(uint32_t addr,uint8_t *rbuf,uint32_t size)
 {
 	int ret=-1;
+	if(amrFlashOpenFlag!=1)
+	    return ret;
 	if ((ret = HAL_Flash_Read(MFLASH, addr, rbuf, size)) != HAL_OK) {
 		CMD_ERR("spi driver read failed\n");
 	}
-	return CMD_STATUS_ACKED;
+	return ret;
 }
 
 static int isValidPacket(const char *ptr,uint32_t size)
@@ -662,6 +673,8 @@ int pushEncodePcmToSpeex(const char *audioBuffer,int length)
         memcpy(amrAudioBuf+amrSumLength,speexBuffer,armFlag);
         flash_overwrite(FLASH_AUDIO_ADDR+FLASH_4K*amrFlashNum,(uint8_t *)amrAudioBuf,FLASH_4K);  
         amrFlashNum++;
+        if(amrFlashNum>=FLASH_4K_MAX)
+            amrFlashNum=FLASH_4K_MAX-1;
         memcpy(amrAudioBuf,speexBuffer+armFlag,outLength-armFlag);
         amrSumLength=outLength-armFlag;
     }
@@ -744,7 +757,6 @@ void tcp_client_speex_task(void *arg)
 	initEncodeModule();
 	stack_mutex_create(&mutexStack);
 	initStack(&top);
-	flash_start();
     TCP_CLIENT_TRACK_INFO("tcp client task start\n");
 	while (tcp_client_task_run) 
 	{
@@ -758,6 +770,7 @@ void tcp_client_speex_task(void *arg)
 			case 2:
 			case 3:
                 {
+                    flash_start();
                     if(isEmpty(top)==0)
                     {
                         stack_mutex_lock(&mutexStack);
@@ -849,6 +862,7 @@ void tcp_client_speex_task(void *arg)
 				TCP_CLIENT_TRACK_INFO("tcp_client_speex_task over\n");
 				break;
 			default:
+			    flash_stop();
 			    tcpClientStatus=0;
 				OS_MSleep(100);
 				break;
@@ -873,7 +887,6 @@ void tcp_client_speex_task(void *arg)
     destoryStack(&top);
     stack_mutex_delete(&mutexStack);
 	OS_ThreadDelete(&tcp_client_task_thread);
-	flash_stop();
 	TCP_CLIENT_TRACK_INFO("tcp client task end\n");
 }
 

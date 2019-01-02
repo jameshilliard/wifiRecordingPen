@@ -114,7 +114,7 @@ static int set_source(DemoPlayerContext *demoPlayer, char* pUrl)
 			if (OS_SemaphoreWait(&demoPlayer->mSem, 100) != OS_OK)
 			{
 				cnt++;
-				if(cnt > 150)
+				if(cnt > 50)
 					break;
 				continue;
 			}
