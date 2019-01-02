@@ -122,6 +122,31 @@ static int  setVolume(uint8_t volume)
     return iRet; 
 }
 
+int  addHttpStr(char *httpStr)
+{
+    char *result = NULL;
+    int iRet=0,i=0;
+    result = strtok(httpStr,";");
+    for(i=0;i<MAX_HTTPAUDIO_NUM;i++)
+    {
+        if(result != NULL){
+           HTTP_PLAYER_TRACK_INFO("url[%02d] is %s\n",i,result);
+           iRet=addHttpAudio(result);
+           result = strtok(NULL, ";");
+        }
+        else{
+            break;
+        }
+    }
+    if(iRet>0)
+    {
+        AD_Button_Cmd.id = AD_BUTTON_5;
+        AD_Button_Cmd.cmd = AD_BUTTON_CMD_SHORT_PRESS;
+    }
+    HTTP_PLAYER_TRACK_INFO("totalHttpUrl=%d\n",iRet);
+    return 0;
+}
+
 int  analysisHttpStr(char *httpStr)
 {
     char *result = NULL;
@@ -281,6 +306,8 @@ void http_player_task(void *arg)
         {
             gHttpUrl.lastHttpUrlFlag=gHttpUrl.lastHttpUrlFlag+1;
             playHttpAudio(gHttpUrl.httpUrl[gHttpUrl.lastHttpUrlFlag]);
+            free(gHttpUrl.httpUrl[gHttpUrl.lastHttpUrlFlag]);
+            gHttpUrl.httpUrl[gHttpUrl.lastHttpUrlFlag]=NULL;
         }  
         OS_MSleep(50);
 	}

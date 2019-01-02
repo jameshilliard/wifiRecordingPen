@@ -94,6 +94,7 @@ static const struct cmd_data g_main_cmds[] = {
 	{ "pm",		cmd_pm_exec },
 	{ "audio", 	cmd_audio_exec },
 	{ "cedarx",	cmd_cedarx_exec},
+	{ "flash",	cmd_flash_exec },
 	{ "sysinfo",cmd_sysinfo_exec },
 };
 

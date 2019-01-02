@@ -26,6 +26,7 @@ extern "C" {
     
     Component_Status http_player_task_init();
     void http_player_task(void *arg);
+    int  addHttpStr(char *httpStr);
     int  analysisHttpStr(char *httpStr);
     int  stopHttpAudioPlay(int stopCode);
 

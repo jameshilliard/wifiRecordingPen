@@ -20,8 +20,17 @@
 #include "fs/fatfs/ff.h"
 #include "encode.h"
 #include "stack.h" 
+#include "driver/chip/hal_flash.h"
 
-#define WAVE_FORMAT_PCM 	1
+#define MFLASH 0
+
+#define TCP_SEND_DATA_MAX_LEN   (1318)
+#define AUDIO_DATA_MAX_LEN      (0x1000)
+#define FLASH_AUDIO_ADDR        (0x280000)
+#define FLASH_4K                (0x1000)
+#define WAVE_FORMAT_PCM 	    1
+#define SPEEX_DATA_MAX_LEN	    (320)
+
 struct client
 {
     uint8_t  state;
@@ -37,6 +46,7 @@ static uint8_t      tcp_client_task_run = 0;
 static OS_Thread_t  tcp_client_task_thread;
 static int          lastSumLength=0;
 static int          amrSumLength=0;
+static int          amrFlashNum=0;
 static char *       msgPacket         = NULL;
 static char *       speexBuffer       = NULL;
 static char *       bytSendAudioBuf   = NULL;
@@ -70,6 +80,54 @@ static void dumpHex(const char* data,int len)
 	TCP_CLIENT_TRACK_INFO("message len=%d\n",len);
 	if(msgBuffer)
 	    free(msgBuffer);
+}
+
+
+
+static int flash_start()
+{
+	if (HAL_Flash_Open(MFLASH, 5000) != HAL_OK)
+	{
+		TCP_CLIENT_TRACK_INFO("flash driver open failed\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+static int flash_stop()
+{
+	/* deinie driver */
+	if (HAL_Flash_Close(MFLASH) != HAL_OK) {
+		TCP_CLIENT_TRACK_INFO("flash driver close failed\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+
+static int flash_overwrite(uint32_t addr,uint8_t *wbuf,uint32_t size)
+{
+	int ret=-1;
+	/* write */
+	if ((ret = HAL_Flash_Overwrite(MFLASH, addr, wbuf, size)) != HAL_OK) {
+		CMD_ERR("flash write failed: %d\n", ret);
+	}
+
+	if ((ret = HAL_Flash_Check(MFLASH, addr, wbuf, size)) != HAL_OK) {
+		CMD_ERR("flash write not success %d\n", ret);
+	}
+	return ret;
+}
+
+static int flash_read(uint32_t addr,uint8_t *rbuf,uint32_t size)
+{
+	int ret=-1;
+	if ((ret = HAL_Flash_Read(MFLASH, addr, rbuf, size)) != HAL_OK) {
+		CMD_ERR("spi driver read failed\n");
+	}
+	return CMD_STATUS_ACKED;
 }
 
 static int isValidPacket(const char *ptr,uint32_t size)
@@ -156,7 +214,7 @@ static int  realResolvePacket(const char *ptr,uint32_t size)
         	    TCP_CLIENT_TRACK_INFO("MSG_PLAYURL %d %s %d\n",pPlayUrl->flage,pPlayUrl->url,strlen(pPlayUrl->url)); 
 				if(pPlayUrl->flage!=100){
 					if(strlen(pPlayUrl->url)>10)
-						analysisHttpStr(pPlayUrl->url);
+						addHttpStr(pPlayUrl->url);
 				}
         	}
     		break;
@@ -350,6 +408,7 @@ static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err)
             tcp_arg(tpcb, (void *)&tcpClient); 
             tcp_recv(tpcb, tcp_client_recv);   
             tcp_nagle_disable(tpcb);
+            tcpClient.pcb->flags |= TF_NODELAY | TF_ACK_NOW; 
             break;
        case ERR_MEM :
             tcp_client_connection_close();                
@@ -390,15 +449,17 @@ err_t tcp_client_send(struct tcp_pcb *tpcb, struct client *tcpClient)
     struct pbuf *ptr;
     err_t wr_err = ERR_OK;
     
-    TCP_CLIENT_TRACK_INFO("wr_err=%d,p_tx=%p,len=%d,snd_buf=%d\n",
-                           wr_err,tcpClient->p_tx,tcpClient->p_tx->len,tcp_sndbuf(tpcb));
-    
-    while ((wr_err == ERR_OK) && (tcpClient->p_tx != NULL) && (tcpClient->p_tx->len <= tcp_sndbuf(tpcb)))
+    //TCP_CLIENT_TRACK_INFO("wr_err=%d,p_tx=%p,len=%d,snd_buf=%d\n",
+     //                      wr_err,tcpClient->p_tx,tcpClient->p_tx->len,tcp_sndbuf(tpcb));
+    if(tcpClient->p_tx->len > tcp_sndbuf(tpcb))
+        return ERR_MEM;
+    while ((wr_err == ERR_OK) && (tcpClient->p_tx != NULL))
     {
         /* get pointer on pbuf from tcpClient structure */
         ptr = tcpClient->p_tx;
         wr_err = tcp_write(tpcb, ptr->payload, ptr->len, TCP_WRITE_FLAG_COPY);
-        //TCP_CLIENT_TRACK_INFO("tcp_write ptr->len=%d wr_err=%d\n", ptr->len,wr_err);
+        TCP_CLIENT_TRACK_INFO("wr_err=%d,p_tx=%p,len=%d,snd_buf=%d\n",
+                               wr_err,tcpClient->p_tx,tcpClient->p_tx->len,tcp_sndbuf(tpcb));
         //dumpHex((char*)ptr->payload,ptr->len);
         if (wr_err == ERR_OK){ 
             tcp_output(tpcb);
@@ -411,6 +472,7 @@ err_t tcp_client_send(struct tcp_pcb *tpcb, struct client *tcpClient)
             pbuf_free(ptr);
         }
         else if(wr_err == ERR_MEM){
+             tcp_output(tpcb);
              /* we are low on memory, try later, defer to poll */
             tcpClient->p_tx = ptr;                                                    
         }
@@ -424,13 +486,22 @@ err_t tcp_client_send(struct tcp_pcb *tpcb, struct client *tcpClient)
 
 int tcp_send_message(void *msg, uint16_t len)
 {
+    int i=0,iRet=0;
     if(tcpClient.state != STATE_TCP_CLINET_CONNECTED)  
         return -1;
     if(tcpClient.p_tx == NULL){
         tcpClient.p_tx  = pbuf_alloc(PBUF_TRANSPORT,len,PBUF_RAM);          
         pbuf_take(tcpClient.p_tx , (char*)msg, len);
     }
-    return tcp_client_send(tcpClient.pcb,&tcpClient);
+    for(i=0;i<10;i++)
+    {
+        iRet=tcp_client_send(tcpClient.pcb,&tcpClient);
+        if(iRet!=ERR_OK)
+            OS_MSleep(20);
+        else
+            break;
+    }
+    return iRet;
 }
 
 int sendLoginData(const char *m_szCameraID)
@@ -580,10 +651,19 @@ int pushEncodePcmToSpeex(const char *audioBuffer,int length)
 {
     int outLength=0;
 	encodePcmToSpeex(audioBuffer,length,speexBuffer,64,&outLength);
-    if((amrSumLength+outLength)<=30*TCP_SEND_DATA_MAX_LEN)
+    if((amrSumLength+outLength)<=AUDIO_DATA_MAX_LEN)
     {
         memcpy(amrAudioBuf+amrSumLength,speexBuffer,outLength);
         amrSumLength=amrSumLength+outLength;
+    }
+    else
+    {
+        int armFlag=(AUDIO_DATA_MAX_LEN-amrSumLength);
+        memcpy(amrAudioBuf+amrSumLength,speexBuffer,armFlag);
+        flash_overwrite(FLASH_AUDIO_ADDR+FLASH_4K*amrFlashNum,(uint8_t *)amrAudioBuf,FLASH_4K);  
+        amrFlashNum++;
+        memcpy(amrAudioBuf,speexBuffer+armFlag,outLength-armFlag);
+        amrSumLength=outLength-armFlag;
     }
     return 0;
 }
@@ -601,6 +681,8 @@ int sendTcpClientStatus(uint8_t status)
         clearBuf(&top);
         stack_mutex_unlock(&mutexStack);
         amrSumLength=0;
+        amrFlashNum=0;
+        
     }
     //const unsigned char amrHeader[6]={0x23,0x21,0x41,0x4d,0x52,0x0A};
     //memcpy(amrAudioBuf,amrHeader,sizeof(amrHeader));
@@ -639,11 +721,11 @@ int sendAliveDataTask(const char *m_szCameraID)
     return iRet;
 }
 
-#define SPEEX_DATA_MAX_LEN	320
+
 void tcp_client_speex_task(void *arg)
 {
     int iRet=0;
-    int i=0;
+    int i=0,j=0;
     int length=0;
     int lesslength=0;
     int flag=0;
@@ -651,16 +733,18 @@ void tcp_client_speex_task(void *arg)
     int size=0;
     char *buf=NULL;
     Elem elem;
-    
+    int count=0,sendLength=0;
 	tcpClientStatus=0;
 	amrSumLength=0;
     msgPacket=malloc(MAX_PACKET_LENGTH);
     bytSendAudioBuf=malloc(TCP_SEND_DATA_MAX_LEN+0x40);
-    amrAudioBuf=malloc(30*TCP_SEND_DATA_MAX_LEN);
+    amrAudioBuf=malloc(AUDIO_DATA_MAX_LEN);
+    char *flashAudioBuf=malloc(AUDIO_DATA_MAX_LEN);
 	speexBuffer=malloc(0x40);
 	initEncodeModule();
 	stack_mutex_create(&mutexStack);
 	initStack(&top);
+	flash_start();
     TCP_CLIENT_TRACK_INFO("tcp client task start\n");
 	while (tcp_client_task_run) 
 	{
@@ -715,49 +799,52 @@ void tcp_client_speex_task(void *arg)
                         if(tcpClientStatus==2)
                         {
                             tcpClientStatus=5;
-                            printf("the sum Audio Data length=%d\n",amrSumLength);
+                            TCP_CLIENT_TRACK_INFO("the sum Audio Data length=%d\n",amrSumLength);
                         }   
                     }
                 }	
 			    break;
 			case 5:
 			    {
-                    length=amrSumLength;
-                    for(i=0;i<30;i++)
+                    TCP_CLIENT_TRACK_INFO("amrFlashNum=%d amrSumLength=%d\n",amrFlashNum,amrSumLength);
+                    for(j=0;j<=amrFlashNum;j++)
                     {
-                        if(length>TCP_SEND_DATA_MAX_LEN)
+                        if(tcpClientStatus!=5)
+                            break;
+                        if(j==amrFlashNum)
                         {
-                            if(i==0)
-                     	        iRet=sendAudioData((char *)amrAudioBuf+TCP_SEND_DATA_MAX_LEN*i,TCP_SEND_DATA_MAX_LEN,1,7);
-                            else
-                            	iRet=sendAudioData((char *)amrAudioBuf+TCP_SEND_DATA_MAX_LEN*i,TCP_SEND_DATA_MAX_LEN,2,1);
-                            length=amrSumLength-TCP_SEND_DATA_MAX_LEN*(i+1);
-
+                            memcpy(flashAudioBuf,amrAudioBuf,amrSumLength);
+                            length=amrSumLength;
                         }
                         else
                         {
-                            if(i==0)
-                            {
-                                iRet=sendAudioData((char *)amrAudioBuf+TCP_SEND_DATA_MAX_LEN*i,length,1,7);
-                                tcpClientStatus=4;
-                            } 
-                            else
-                            {
-                                iRet=sendAudioData((char *)amrAudioBuf+TCP_SEND_DATA_MAX_LEN*i,length,3,7);
-                                tcpClientStatus=0;
-                            }
-                            break;
+                            flash_read(FLASH_AUDIO_ADDR+j*FLASH_4K,(uint8_t *)flashAudioBuf,FLASH_4K);
+                            length=FLASH_4K;
+                        }  
+                        count=length/TCP_SEND_DATA_MAX_LEN+1;
+                        for(i=0;i<count;i++)
+                        {
+                            if(tcpClientStatus!=5)
+                                break;
+                            flag=2;
+                            sendLength=TCP_SEND_DATA_MAX_LEN;
+                            if(j==0 && i==0)  flag=1;
+                            if(j==amrFlashNum && (i==count-1))  flag=3;
+                            if(length<TCP_SEND_DATA_MAX_LEN*(i+1))
+                                sendLength=length-TCP_SEND_DATA_MAX_LEN*i;
+                            iRet=sendAudioData((char *)flashAudioBuf+TCP_SEND_DATA_MAX_LEN*i,sendLength,flag,7);
+                            if(iRet!=ERR_OK)
+    	                    {
+    	                        TCP_CLIENT_TRACK_WARN("msg: sendAudioData fail,iRet=%d,i=%d\n",iRet,i);
+    	                    }
+    	                    OS_MSleep(10);
                         }
-                        if(iRet!=ERR_OK)
-	                    {
-	                        TCP_CLIENT_TRACK_WARN("msg: sendAudioData fail,iRet=%d,i=%d\n",iRet,i);
-	                    }
-	                    OS_MSleep(2);
                     }
+                    if(tcpClientStatus==5)
+                        tcpClientStatus=4;
 			    }
 			    break;
 			case 4:
-				sendAudioData(NULL,0,3,7);
 				tcpClientStatus=0;
 				TCP_CLIENT_TRACK_INFO("tcp_client_speex_task over\n");
 				break;
@@ -780,10 +867,13 @@ void tcp_client_speex_task(void *arg)
         free(speexBuffer);
     if(amrAudioBuf)
         free(amrAudioBuf);
+    if(flashAudioBuf)
+        free(flashAudioBuf);
     destroyEncodeModule();
     destoryStack(&top);
     stack_mutex_delete(&mutexStack);
 	OS_ThreadDelete(&tcp_client_task_thread);
+	flash_stop();
 	TCP_CLIENT_TRACK_INFO("tcp client task end\n");
 }
 
