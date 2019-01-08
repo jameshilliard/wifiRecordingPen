@@ -222,6 +222,13 @@ void* get_heads()
 	return headers;
 }
 #endif
+
+void* alink_get_heads(void)
+{
+	static char *headers = "Accept: */*\r\nContent-Type:application/x-www-form-urlencoded";
+	return headers;
+}
+
 static int HTTPC_post_test(HTTPParameters *clientParams, char *credentials,char *cmdRespone)
 {
 	int ret = 0;
@@ -244,7 +251,7 @@ request:
 		goto relese;
 	}
 
-	if ((ret = HTTPC_request(clientParams, NULL)) != 0) {
+	if ((ret = HTTPC_request(clientParams, alink_get_heads)) != 0) {
 		CMD_ERR("http request err..\n");
 		goto relese;
 	}

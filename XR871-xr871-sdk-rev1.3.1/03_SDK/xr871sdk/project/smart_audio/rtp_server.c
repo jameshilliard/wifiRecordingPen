@@ -142,7 +142,7 @@ void rtp_server_task(void *arg)
                 iRet=loginRounterServer(&mLoginReturnInfo,cmdResponse);
                 if(iRet==0 || iRet==4)
                 {
-                    if(iRet==4)
+                    //if(iRet==4)
                     {
                         sprintf(mLoginReturnInfo.relayServerAddr, "%s", DEBUG_RTP_SERVER_IP);
                         mLoginReturnInfo.relayServerPort=DEBUG_RTP_SERVER_PORT;

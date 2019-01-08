@@ -1,0 +1,40 @@
+How to play music in flash
+leafy.myeh@xradiotech.com edited this page on 24 May 2018 · 2 revisions
+方案实现
+实现打包音频文件到固件中并烧录
+实现FLASH上音频文件播放
+打包方法
+windows下在cmd窗口打包音频文件到media.bin文件，命令如下：
+copy /b *.mp3 media.bin
+
+修改对应的image.cfg添加一行media.bin的信息，并修改count值，如下：
+注意：flash_offs是media.bin存放在FLASH上的打包地址，实际bin文件的起始地址是flash_offs+64B
+	{
+	    "magic"   :"AWIH",
+	    "version" :"0.3",
+	    "OTA"     :{"addr": "1024K", "size": "32K"},
+	    "count"   :8,   //改这个保持和bin文件数量一致
+	    "section" :[
+	        {"id": "0xa5ff5a00", "bin": "boot.bin",     "cert": "null", "flash_offs": "0K",    "sram_offs": "0x00067000", "ep": "0x00067101", "attr": "0x1"},
+	        {"id": "0xa5fe5a01", "bin": "app.bin",      "cert": "null", "flash_offs": "32K",   "sram_offs": "0x00010000", "ep": "0x00010101", "attr": "0x1"},
+	        {"id": "0xa5fd5a02", "bin": "app_xip.bin",  "cert": "null", "flash_offs": "235K",  "sram_offs": "0xffffffff", "ep": "0xffffffff", "attr": "0x2"},
+	        {"id": "0xa5fc5a03", "bin": "net.bin",      "cert": "null", "flash_offs": "653K",  "sram_offs": "0x60000000", "ep": "0xffffffff", "attr": "0x1"},
+	        {"id": "0xa5fa5a05", "bin": "wlan_bl.bin",  "cert": "null", "flash_offs": "878K",  "sram_offs": "0xffffffff", "ep": "0xffffffff", "attr": "0x1"},
+	        {"id": "0xa5f95a06", "bin": "wlan_fw.bin",  "cert": "null", "flash_offs": "881K",  "sram_offs": "0xffffffff", "ep": "0xffffffff", "attr": "0x1"},
+	        {"id": "0xa5f85a07", "bin": "wlan_sdd.bin", "cert": "null", "flash_offs": "1012K", "sram_offs": "0xffffffff", "ep": "0xffffffff", "attr": "0x1"},
+	        {"id": "0xa5f85a08", "bin": "media.bin",    "cert": "null", "flash_offs": "????K", "sram_offs": "0xffffffff", "ep": "0xffffffff", "attr": "0x1"}
+	    ]
+	}
+播放设置
+播放在set_url的时候传参格式定义为：
+flash://flash_number?addr=flash_address&length=music_size
+例如: flash://0?addr=4096000&length=100000
+其中：0为flash的编号，固定写0，addr为想要播放的music文件在flash上的绝对地址，length为music文件长度
+建议使用工具打包media.bin文件的时候自动生成flash_media_info.h的头文件信息，生成对应的宏定义，方便程序寻址调用，如：
+    #define FLASH_MEDIA_BIN_OFFS     (64 + 0x????????)
+    #define FLASH_MEDIA_FILE1_OFFS   (FLASH_MEDIA_BIN_OFFS + 0x????????)
+    #define FLASH_MEDIA_FILE1_LENGTH (0x????????)
+    #define FLASH_MEDIA_FILE2_OFFS   (FLASH_MEDIA_BIN_OFFS + 0x????????)
+    #define FLASH_MEDIA_FILE2_LENGTH (0x????????)
+    #define FLASH_MEDIA_FILE3_OFFS   (FLASH_MEDIA_BIN_OFFS + 0x????????)
+    #define FLASH_MEDIA_FILE3_LENGTH (0x????????)

@@ -62,7 +62,8 @@ static OS_Mutex_t   mutexStack;
 //#define stack_mutex_lock(mtx)    OS_MutexLock(mtx, OS_WAIT_FOREVER)
 //#define stack_mutex_unlock(mtx)  OS_MutexUnlock(mtx)
 #define stack_mutex_lock(mtx)   
-#define stack_mutex_unlock(mtx)  
+#define stack_mutex_unlock(mtx) 
+
 
 static void dumpHex(const char* data,int len)
 {
@@ -90,12 +91,12 @@ static int flash_start()
 {
     if(amrFlashOpenFlag==0)
     {
-    	if (HAL_Flash_Open(MFLASH, 5000) != HAL_OK)
+        amrFlashOpenFlag=1;
+    	if(HAL_Flash_Open(MFLASH, 5000) != HAL_OK)
     	{
     		TCP_CLIENT_TRACK_INFO("flash driver open failed\n");
     		return -1;
     	}
-    	amrFlashOpenFlag=1;
     }
 	return 0;
 }
@@ -104,12 +105,11 @@ static int flash_stop()
 {
 	if(amrFlashOpenFlag==1)
 	{
-    	if (HAL_Flash_Close(MFLASH) != HAL_OK){
-    	    amrFlashOpenFlag=0;
+	    amrFlashOpenFlag=0;
+    	if(HAL_Flash_Close(MFLASH) != HAL_OK){
     		TCP_CLIENT_TRACK_INFO("flash driver close failed\n");
     		return -1;
     	}
-    	amrFlashOpenFlag=0;
 	}
 	return 0;
 }
@@ -202,7 +202,7 @@ static int  realResolvePacket(const char *ptr,uint32_t size)
 	    case MSG_LOGINRET:
             {
                 procLoginReturnMsg(pMsgHeader); 
-                sendTcpClientStatus(1);
+                //sendTcpClientStatus(1);
                 TCP_CLIENT_TRACK_INFO("MSG_LOGINRET\n");    
     		} 
     		break;

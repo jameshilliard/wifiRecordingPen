@@ -1,0 +1,25 @@
+flash://0?addr=2097216&length=128783
+2m=0x20000=2097152
+
+15444 9月  17 16:00 is_anyka_afresh_net_config.mp3
+11664 9月  17 16:28 is_anyka_connected_success.mp3
+ 9828 1月  30  2018 is_anyka_please_config_net.mp3
+57730 1月  30  2018 is_anyka_recover_device.mp3
+ 6156 9月   7 15:28 is_beginStudyMode.mp3
+16632 9月  17 16:08 is_closeLegWarn.mp3
+20628 5月  14  2018 is_rset45.mp3
+ 3672 5月  14  2018 is_sit1.mp3
+ 4428 5月  14  2018 is_sit2.mp3
+ 3996 5月  14  2018 is_sit3.mp3
+10368 4月  11  2018 is_sit5.mp3
+ 4644 1月   3 18:06 mf_test110.mp3
+13932 1月   3 18:06 mf_test111.mp3
+ 4968 1月   3 18:06 mf_test11.mp3
+ 8532 1月   3 18:06 mf_test12.mp3
+ 9396 1月   3 18:06 mf_test13.mp3
+ 7884 1月   3 18:06 mf_test14.mp3
+ 7452 1月   3 18:06 mf_test15.mp3
+ 4968 1月   3 18:06 mf_test16.mp3
+ 5508 1月   3 18:06 mf_test17.mp3
+ 7452 1月   3 18:06 mf_test18.mp3
+ 5184 1月   3 18:06 mf_test19.mp3
