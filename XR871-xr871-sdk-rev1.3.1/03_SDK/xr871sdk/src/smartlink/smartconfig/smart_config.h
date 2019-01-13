@@ -41,7 +41,7 @@ extern "C" {
  * define SMARTCONFIG_ENABLE_CRYPT 1 to use smartconfig encryption.
  */
 #ifndef SMARTCONFIG_ENABLE_CRYPT
-#define SMARTCONFIG_ENABLE_CRYPT 1
+#define SMARTCONFIG_ENABLE_CRYPT 0
 #endif
 
 enum loglevel{

@@ -36,7 +36,7 @@
 
 #include "smart_config.h"
 
-#define g_debuglevel  OFF
+#define g_debuglevel  INFO
 
 static int ack_successful(struct netif *nif, uint32_t random_num)
 {
