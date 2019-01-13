@@ -41,7 +41,7 @@
 #include "kernel/os/os.h"
 #include "driver/chip/hal_gpio.h"
 #include "serial.h"
-
+#include "serialLight.h"
 
 #define SAMRT_DEBUG 1
 
@@ -92,6 +92,7 @@ void initSerial()
 {
 	serial_init(SERIAL_UART_ID, 115200, UART_DATA_BITS_8, UART_PARITY_NONE, UART_STOP_BITS_1, 0);
 	serial_start();
+	initSerialLight();
 }
 
 int main(void)

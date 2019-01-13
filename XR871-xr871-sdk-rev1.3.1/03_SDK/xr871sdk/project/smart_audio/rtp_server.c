@@ -15,6 +15,8 @@
 
 static uint8_t      rtp_server_task_run = 0;
 static OS_Thread_t  rtp_server_task_thread;
+static char         guid[80]={0};
+static char         gServer[80]={0};
 
 static int analyzeReturnInfo(const char *strResponse)
 {
@@ -93,38 +95,276 @@ static int calSecret(char uid[80],char passwd[80])
 	}
 	char *outString=MDString(newUid);
 	memcpy(passwd,outString,strlen(outString));
-	printf("uid=%s,newuid=%s,passwd=%s\n",uid,newUid,passwd);
+	RTP_SERVER_TRACK_INFO("uid=%s,newuid=%s,passwd=%s\n",uid,newUid,passwd);
 	return 0;
 }
 
-static int loginRounterServer(LoginReturnInfo *returnInfo,char *cmdResponse)
+static int loginRounterServer(LoginReturnInfo *returnInfo)
 {
-    char httpCmdStr[256]={0};
-    char httpServerAddr[512]={0};
-    if(returnInfo==NULL || cmdResponse==NULL){
-        RTP_SERVER_TRACK_WARN("parm error: %p %p\n",returnInfo,cmdResponse);
+    char httpCmdStr[512]={0};
+    char httpServerAddr[256]={0};
+    if(returnInfo==NULL){
+        RTP_SERVER_TRACK_WARN("parm error: %p\n",returnInfo);
         return -1;
     }
+    char *cmdResponse=malloc(4096);
+    if(cmdResponse==NULL){
+        RTP_SERVER_TRACK_WARN("malloc is error\n");
+        return -2;
+    }    
+    memset(cmdResponse,0,4096);
     char secret[80]={0};
-    int iRet=calSecret(DEV_DEBUG_ID,secret);
-	sprintf(httpServerAddr,DEV_LOGIN_CONSERVER, DEV_DE_ROUNTER_SERVER);
-	sprintf(httpCmdStr,"%s ipc_id=%s&pwd=%s&HWVersion=%s&SWVersion=%s&devType=7",httpServerAddr,DEV_DEBUG_ID,secret,DEV_HW_VERSION,DEV_SW_VERSION);
+    int iRet=calSecret(guid,secret);
+	sprintf(httpServerAddr,DEV_LOGIN_CONSERVER, gServer);
+	sprintf(httpCmdStr,"%s ipc_id=%s&pwd=%s&HWVersion=%s&SWVersion=%s&devType=7",httpServerAddr,guid,secret,DEV_HW_VERSION,DEV_SW_VERSION);
     iRet=httpc_cmd_self(httpCmdStr,cmdResponse); 
     RTP_SERVER_TRACK_INFO("loginRounterServer: iRet=%d StrcmdResponse=%s end\n",iRet,cmdResponse);
     if(iRet==0){
         iRet=analyzeLoginInfo(cmdResponse,returnInfo);
     }
+    if(cmdResponse){
+        free(cmdResponse);
+        cmdResponse=NULL;
+    }
     return iRet;
+}
+
+//坐姿提醒 信息 的记录
+int reportPoseRemind()
+{
+	char sendBuf[512] = {0};
+	char strUrl[256]={0};
+    char *cmdResponse=malloc(4096);
+    if(cmdResponse==NULL){
+        RTP_SERVER_TRACK_WARN("malloc is error\n");
+        return -2;
+    } 
+	sprintf(strUrl,STRING_REPORTPOSEREMIND_CONSERVER, gServer);
+	sprintf(sendBuf, "%s devId=%s",strUrl, guid);
+	RTP_SERVER_TRACK_INFO("sendBuf:%s---", sendBuf);
+	int iRet=httpc_cmd_self(sendBuf,cmdResponse);
+	int rlen = strlen(cmdResponse);
+	if(rlen < 5)
+	{
+		RTP_SERVER_TRACK_INFO("--------Post_head,return error---");
+        if(cmdResponse){
+            free(cmdResponse);
+            cmdResponse=NULL;
+        }
+		return -1;
+	}
+	RTP_SERVER_TRACK_INFO("strResponse:%s---",cmdResponse);
+	cJSON * pJson = cJSON_Parse(cmdResponse);
+	if(NULL == pJson)																						 
+	{
+		RTP_SERVER_TRACK_INFO("pJson null");
+		if(cmdResponse){
+            free(cmdResponse);
+            cmdResponse=NULL;
+        }
+		return -1;
+	}
+	cJSON * pSub = cJSON_GetObjectItem(pJson, "result");
+	if(NULL == pSub)
+	{
+		 RTP_SERVER_TRACK_INFO("getPhoneRecordAudioPath null");
+		 iRet = -1;
+	}
+	else
+	{
+		iRet = analyzeReturnInfo(pSub->valuestring);
+		RTP_SERVER_TRACK_INFO("getPhoneRecordAudioPath result : %d", iRet);
+	}
+    if(cmdResponse){
+        free(cmdResponse);
+        cmdResponse=NULL;
+    }
+	return iRet;
+}
+
+
+//休息提醒 的记录
+int reportRestRemind()
+{
+	char sendBuf[512] = {0};
+	char strUrl[256]={0};
+    char *cmdResponse=malloc(4096);
+    if(cmdResponse==NULL){
+        RTP_SERVER_TRACK_WARN("malloc is error\n");
+        return -2;
+    } 
+	sprintf(strUrl,STRING_REPORTRESETREMIND_CONSERVER, gServer);
+	sprintf(sendBuf, "%s devId=%s",strUrl, guid);
+	RTP_SERVER_TRACK_INFO("sendBuf:%s---", sendBuf);
+	int iRet=httpc_cmd_self(sendBuf,cmdResponse);
+	int rlen = strlen(cmdResponse);
+	if(rlen < 5)
+	{
+		RTP_SERVER_TRACK_INFO("--------Post_head,return error---");
+        if(cmdResponse){
+            free(cmdResponse);
+            cmdResponse=NULL;
+        }
+		return -1;
+	}
+	RTP_SERVER_TRACK_INFO("strResponse:%s---",cmdResponse);
+	cJSON * pJson = cJSON_Parse(cmdResponse);
+	if(NULL == pJson)																						 
+	{
+		RTP_SERVER_TRACK_INFO("pJson null");
+		if(cmdResponse){
+            free(cmdResponse);
+            cmdResponse=NULL;
+        }
+		return -1;
+	}
+	cJSON * pSub = cJSON_GetObjectItem(pJson, "result");
+	if(NULL == pSub)
+	{
+		 RTP_SERVER_TRACK_INFO("getPhoneRecordAudioPath null");
+		 iRet = -1;
+	}
+	else
+	{
+		iRet = analyzeReturnInfo(pSub->valuestring);
+		RTP_SERVER_TRACK_INFO("getPhoneRecordAudioPath result : %d", iRet);
+	}
+    if(cmdResponse){
+        free(cmdResponse);
+        cmdResponse=NULL;
+    }
+	return iRet;
+}
+//持续学习时长 的记录
+int reportContinualStudy(int timeLengthInMin)
+{
+    char sendBuf[512] = {0};
+	char strUrl[256]={0};
+    char *cmdResponse=malloc(4096);
+    if(cmdResponse==NULL){
+        RTP_SERVER_TRACK_WARN("malloc is error\n");
+        return -2;
+    } 
+	sprintf(strUrl,STRING_REPORTCONTINUESTUDY_CONSERVER,gServer);
+	sprintf(sendBuf, "%s devId=%s&timeLengthInMin=%d",strUrl, guid,timeLengthInMin);
+	RTP_SERVER_TRACK_INFO("sendBuf:%s---", sendBuf);
+	int iRet=httpc_cmd_self(sendBuf,cmdResponse);
+	int rlen = strlen(cmdResponse);
+	if(rlen < 5)
+	{
+		RTP_SERVER_TRACK_INFO("--------Post_head,return error---");
+        if(cmdResponse){
+            free(cmdResponse);
+            cmdResponse=NULL;
+        }
+		return -1;
+	}
+	RTP_SERVER_TRACK_INFO("strResponse:%s---",cmdResponse);
+	cJSON * pJson = cJSON_Parse(cmdResponse);
+	if(NULL == pJson)																						 
+	{
+		RTP_SERVER_TRACK_INFO("pJson null");
+		if(cmdResponse){
+            free(cmdResponse);
+            cmdResponse=NULL;
+        }
+		return -1;
+	}
+	cJSON * pSub = cJSON_GetObjectItem(pJson, "result");
+	if(NULL == pSub)
+	{
+		 RTP_SERVER_TRACK_INFO("getPhoneRecordAudioPath null");
+		 iRet = -1;
+	}
+	else
+	{
+		iRet = analyzeReturnInfo(pSub->valuestring);
+		RTP_SERVER_TRACK_INFO("getPhoneRecordAudioPath result : %d", iRet);
+	}
+    if(cmdResponse){
+        free(cmdResponse);
+        cmdResponse=NULL;
+    }
+	return iRet;
+}
+
+
+//坐姿 达标率改变
+int poseDataStatus(int detectUnit, int manExistNum, int manNotExistNum, int goodPoseNum, int badPoseNum, char *detectInfo)
+{
+    char strUrl[256] = {0};
+	char *sendBuf=malloc(2560);
+    if(sendBuf==NULL){
+        RTP_SERVER_TRACK_WARN("malloc is error\n");
+        return -2;
+    } 
+    char *cmdResponse=malloc(4096);
+    if(cmdResponse==NULL){
+        RTP_SERVER_TRACK_WARN("malloc is error\n");
+        return -2;
+    } 
+	sprintf(strUrl,STRING_REPORTRESETREMIND_CONSERVER, gServer);
+	sprintf(sendBuf, "%s devId=%s&detectUnit=%d&manExistNum=%d&manNotExistNum=%d&goodPoseNum=%d&badPoseNum=%d&detectInfo=%s",strUrl, guid, detectUnit, manExistNum, manNotExistNum, goodPoseNum, badPoseNum, detectInfo);
+	RTP_SERVER_TRACK_INFO("sendBuf:%s---", sendBuf);
+	int iRet=httpc_cmd_self(sendBuf,cmdResponse);
+	int rlen = strlen(cmdResponse);
+	if(rlen < 5)
+	{
+		RTP_SERVER_TRACK_INFO("--------Post_head,return error---");
+        if(sendBuf){
+            free(sendBuf);
+            sendBuf=NULL;
+        }
+        if(cmdResponse){
+            free(cmdResponse);
+            cmdResponse=NULL;
+        }
+		return -1;
+	}
+	RTP_SERVER_TRACK_INFO("strResponse:%s---",cmdResponse);
+	cJSON * pJson = cJSON_Parse(cmdResponse);
+	if(NULL == pJson)																						 
+	{
+		RTP_SERVER_TRACK_INFO("pJson null");
+        if(sendBuf){
+            free(sendBuf);
+            sendBuf=NULL;
+        }
+		if(cmdResponse){
+            free(cmdResponse);
+            cmdResponse=NULL;
+        }
+		return -1;
+	}
+	cJSON * pSub = cJSON_GetObjectItem(pJson, "result");
+	if(NULL == pSub)
+	{
+		 RTP_SERVER_TRACK_INFO("getPhoneRecordAudioPath null");
+		 iRet = -1;
+	}
+	else
+	{
+		iRet = analyzeReturnInfo(pSub->valuestring);
+		RTP_SERVER_TRACK_INFO("getPhoneRecordAudioPath result : %d", iRet);
+	}
+    if(sendBuf){
+        free(sendBuf);
+        sendBuf=NULL;
+    }
+    if(cmdResponse){
+        free(cmdResponse);
+        cmdResponse=NULL;
+    }
+	return iRet;
 }
 
 void rtp_server_task(void *arg)
 {
     uint8_t cmdStatus=CMD_RTP_SERVER_GET_ADDR;
     int     iRet=-1;
-    char    *cmdResponse=NULL;
-    char    idStr[32]={0};
     LoginReturnInfo  mLoginReturnInfo;
-    strncpy(idStr,DEV_DEBUG_ID,sizeof(idStr));
+    strncpy(guid,DEV_DEBUG_ID,sizeof(guid));
+    strncpy(gServer,DEV_DE_ROUNTER_SERVER,sizeof(gServer));
     
     RTP_SERVER_TRACK_INFO("rtp server task start\n"); 
 	while (rtp_server_task_run) {
@@ -135,11 +375,8 @@ void rtp_server_task(void *arg)
             {
                 if(getWifiState() == WLAN_STA_STATE_DISCONNECTED)
                     break;
-                if(cmdResponse==NULL)
-                    cmdResponse=malloc(4096);
-                memset(cmdResponse,0,4096);
                 memset(&mLoginReturnInfo,0,sizeof(mLoginReturnInfo));
-                iRet=loginRounterServer(&mLoginReturnInfo,cmdResponse);
+                iRet=loginRounterServer(&mLoginReturnInfo);
                 if(iRet==0 || iRet==4)
                 {
                     //if(iRet==4)
@@ -149,10 +386,6 @@ void rtp_server_task(void *arg)
                     }
                     cmdStatus=CMD_RTP_SERVER_CONNECT;
                 }   
-                if(cmdResponse){
-                    free(cmdResponse);
-                    cmdResponse=NULL;
-                }
             }
             break;
         case CMD_RTP_SERVER_CONNECT:
@@ -174,7 +407,7 @@ void rtp_server_task(void *arg)
                     cmdStatus=CMD_RTP_SERVER_CLOSING;
                     break;
                 } 
-                iRet=sendLoginData(idStr);
+                iRet=sendLoginData(guid);
                 if(iRet==ERR_OK){
                     cmdStatus=CMD_RTP_SERVER_LOGIN_DETECT;
                 } 
@@ -195,7 +428,7 @@ void rtp_server_task(void *arg)
                getTcpTimeout()==1){
                 cmdStatus=CMD_RTP_SERVER_CLOSING;
             }
-            sendAliveDataTask(idStr);
+            sendRtpServerDataTask(guid);
             break;
         case CMD_RTP_SERVER_CLOSING:
             tcp_client_connection_close();

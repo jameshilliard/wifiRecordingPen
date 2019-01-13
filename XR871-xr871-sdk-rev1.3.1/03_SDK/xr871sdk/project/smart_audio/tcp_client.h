@@ -57,6 +57,10 @@ enum    TCMDTYPE
 	MSG_UPLOADCAPSTATUE = 35,               //采集端异常状态上传（35）
 	MSG_NODIFYCAPSOUNDVALUE = 39,           //浏览端命令：通知采集端修改音量
 	MSG_GETSOUNDVALUE = 40,                 //浏览端命令：通知采集端修改音量
+
+	MSG_DEVINFO = 41,
+	MSG_UPDATEVERSION = 42, 
+	
 	MSG_INTELLIGENT = 121,
 	MSG_PLAYURL = 122,
 	MSG_PLAYSTATUS = 123,
@@ -170,6 +174,7 @@ struct TMSG_SENDSWITCH
 	BOOL		m_nSwitch;	
 };
 
+
 //设置音量
 struct TMSG_SETAUDIOVALUE
 {
@@ -229,6 +234,16 @@ struct TMSG_KEEPALIVE
      char endChar;// xml类型  
 };
 
+//设置移动侦测模式
+struct TMSG_DEVINFO
+{
+    struct TMSG_HEADER header;
+	int	moveMode;
+	int	alarmMode;	
+	int	recordStatus;	
+	int audioValue;
+};
+
 //服务器返回
 struct TMSG_LOGINRET
 {
@@ -273,12 +288,13 @@ extern "C" {
     int     sendLoginData(const char *m_szCameraID);
     int     getTcpClientState(void);
     int     getTcpClientLoginState(void);
-    int     sendAliveDataTask(const char *m_szCameraID);
+    int     sendRtpServerDataTask(const char *m_szCameraID);
     int     sendAliveData(const char *m_szCameraID);
     int     getTcpTimeout(void);
 	int 	pushPcmAudioData(const char *audioBuffer,int length,int flag,int type);
     Component_Status tcp_client_task_init();
     int     sendTcpClientStatus(uint8_t status);
+    uint32_t getTickSecond(void);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

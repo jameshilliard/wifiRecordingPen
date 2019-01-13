@@ -3,7 +3,6 @@
 #include "common/cmd/cmd.h"
 #include "common/cmd/cmd_defs.h"
 #include "common/framework/sysinfo.h"
-#include "driver/component/component_def.h"
 #include "command.h"
 #include "cjson/cJSON.h"
 #include "string.h"
@@ -19,6 +18,7 @@
 #include "wifi_manage.h"
 #include "tcp_client.h"
 #include "common/framework/sys_ctrl/sys_ctrl.h"
+#include "flash_media_info.h"
 
 #define MAX_HTTPAUDIO_NUM   20
 
@@ -108,7 +108,7 @@ static int  playHttpAudio(char *httpStr)
     return iRet; 
 }
 
-static int  setVolume(uint8_t volume)
+int  setVolume(uint8_t volume)
 {
     int iRet=CMD_STATUS_FAIL;
     char cmdStr[40]={0};
@@ -171,6 +171,41 @@ int  analysisHttpStr(char *httpStr)
     }
     HTTP_PLAYER_TRACK_INFO("totalHttpUrl=%d\n",iRet);
     return 0;
+}
+
+int voice_tips_add_music(int type)
+{
+    char mp3Path[128]={0};
+    memset(mp3Path,0,sizeof(mp3Path));
+    switch(type)
+    {
+        case FIRST_RESET:
+            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_SIT1_FLASHADDR,IS_SIT1_LENGTH);
+            break;
+        case SECOND_RESET:
+            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_SIT2_FLASHADDR,IS_SIT2_LENGTH);
+            break;
+        case THIRD_RESET:
+            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_SIT3_FLASHADDR,IS_SIT3_LENGTH);
+            break;
+        case RESET:
+            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_SIT5_FLASHADDR,IS_SIT5_LENGTH);
+            break; 
+        case CLOSELEGWARN:
+            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_CLOSELEGWARN_FLASHADDR,IS_CLOSELEGWARN_LENGTH);
+            break;
+        case RSET45:
+            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_RSET45_FLASHADDR,IS_RSET45_LENGTH);
+            break;
+        default:
+            break;
+    }
+    if(strlen(mp3Path)<=0)
+    {
+        return -1; 
+    }
+    
+    return addHttpStr(mp3Path);
 }
 
 int  stopHttpAudioPlay(int stopCode)

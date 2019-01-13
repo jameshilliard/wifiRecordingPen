@@ -42,7 +42,7 @@ struct client
     struct pbuf *p_tx;
 }tcpClient;
 
-
+static struct TMSG_DEVINFO g_devInfo;
 static uint8_t      tcp_client_task_run = 0;
 static OS_Thread_t  tcp_client_task_thread;
 static int          lastSumLength=0;
@@ -56,7 +56,8 @@ static char *       amrAudioBuf       = NULL;
 uint8_t             tcpClientStatus   = 0; // 1 run 2 sendBuf and end 0 stop
 SNode       *       top               = NULL;
 static OS_Mutex_t   mutexStack;
-
+int    daVol_def; //默认大拿音量，用户可以自定更改0-5
+static int          sendRtpServerCmdFlag=0;
 #define stack_mutex_create(mtx)  (OS_MutexCreate(mtx) == OS_OK ? 0 : -1)
 #define stack_mutex_delete(mtx)  OS_MutexDelete(mtx)
 //#define stack_mutex_lock(mtx)    OS_MutexLock(mtx, OS_WAIT_FOREVER)
@@ -85,6 +86,10 @@ static void dumpHex(const char* data,int len)
 	    free(msgBuffer);
 }
 
+uint32_t getTickSecond()
+{
+    return (OS_JiffiesToSecs(OS_GetJiffies()));
+}
 
 
 static int flash_start()
@@ -196,6 +201,7 @@ static int  realResolvePacket(const char *ptr,uint32_t size)
     struct TMSG_REQUESTPLAYURL *pPlayUrl=NULL; 
     struct TMSG_REQUESTPLAYURLLIST *pPlayUrlList=NULL;
     struct TMSG_PLAYSTATUS *pPlayStatus=NULL;
+    struct TMSG_SETAUDIOVALUE *pSetAudioValue=NULL;
 	TCP_CLIENT_TRACK_INFO("msgId=%d\n", pMsgHeader->cMsgID);
     switch (pMsgHeader->cMsgID)
 	{   
@@ -237,9 +243,34 @@ static int  realResolvePacket(const char *ptr,uint32_t size)
     			    analysisHttpStr(pPlayUrlList->url);
     		}
     	    break;
+        case MSG_NODIFYCAPSOUNDVALUE:
+			{
+				pSetAudioValue = (struct TMSG_SETAUDIOVALUE *)pMsgHeader;
+				TCP_CLIENT_TRACK_INFO("MSG_NODIFYCAPSOUNDVALUE %d\n",pSetAudioValue->setAudioValue); 
+				if(pSetAudioValue->setAudioValue >= 0 && pSetAudioValue->setAudioValue <= 5)
+				{
+					daVol_def = pSetAudioValue->setAudioValue;
+					setVolume(daVol_def);
+				}
+				else
+				{
+					TCP_CLIENT_TRACK_INFO("set audio value error:%d------", pSetAudioValue->setAudioValue);
+				}
+				g_devInfo.audioValue = daVol_def;
+				sendRtpServerCmdFlag=1;
+				//returnDeviceInfo(ptrRtpSendParam->m_szCameraID, g_devInfo);
+			}
+			break;
+		case MSG_GETSOUNDVALUE:
+			{
+				TCP_CLIENT_TRACK_INFO("MSG_GETSOUNDVALUE:%d\n", daVol_def);
+				g_devInfo.audioValue = daVol_def;
+				sendRtpServerCmdFlag=2;
+				//returnAudioValue(ptrRtpSendParam->m_szCameraID, daVol_def);
+				//returnDeviceInfo(ptrRtpSendParam->m_szCameraID, g_devInfo);
+			}
+			break;
 		case MSG_INTELLIGENT:
-    	case MSG_NODIFYCAPSOUNDVALUE:
-    	case MSG_GETSOUNDVALUE:
     	case MSG_SENDSWITCH:
     	case MSG_PTZCOMMAND:
     	case MSG_PARAMCONFIG:
@@ -515,6 +546,58 @@ int tcp_send_message(void *msg, uint16_t len)
     return iRet;
 }
 
+static int returnAudioValue(const char *m_szCameraID, int audioValue)
+{ 
+    struct TMSG_GETAUDIOVALUE getAudioValue;
+    int iRet;
+    if(m_szCameraID == NULL)
+        return -1;
+    memset(&getAudioValue,0,sizeof(struct TMSG_GETAUDIOVALUE));
+    getAudioValue.header.m_iXmlLen = sizeof(struct TMSG_GETAUDIOVALUE)-4;
+    getAudioValue.header.m_bytXmlType = 0;
+    memcpy(&getAudioValue.header.session,CMDSESSION,strlen(CMDSESSION));
+    getAudioValue.header.cMsgID = MSG_GETSOUNDVALUE;
+	getAudioValue.getAudioValue = audioValue;
+    iRet = tcp_send_message((char*)&getAudioValue, sizeof(struct TMSG_GETAUDIOVALUE));
+    if (iRet < 0){
+        TCP_CLIENT_TRACK_WARN("msg: returnAudioValue fail %s,iRet=%d\n",m_szCameraID,iRet);
+        return -1;
+    } 
+    else
+    {
+       TCP_CLIENT_TRACK_INFO("msg: returnAudioValue success %s,send %d bytes\n",m_szCameraID,sizeof(struct TMSG_GETAUDIOVALUE));
+       return 0;
+    }      
+}
+
+static int returnDeviceInfo(const char *m_szCameraID, struct TMSG_DEVINFO devInfo)
+{ 
+    struct TMSG_DEVINFO returnDevInfo;
+    int iRet;
+    if(m_szCameraID == NULL)
+        return -1;
+    memset(&returnDevInfo,0,sizeof(struct TMSG_DEVINFO));
+    returnDevInfo.header.m_iXmlLen = sizeof(struct TMSG_DEVINFO)-4;
+    returnDevInfo.header.m_bytXmlType = 0;
+    memcpy(&returnDevInfo.header.session,CMDSESSION,strlen(CMDSESSION));
+    returnDevInfo.header.cMsgID = MSG_DEVINFO;
+	returnDevInfo.alarmMode = devInfo.alarmMode;
+	returnDevInfo.moveMode = devInfo.moveMode;
+	returnDevInfo.recordStatus = devInfo.recordStatus;
+	returnDevInfo.audioValue = devInfo.audioValue;
+	
+    iRet = tcp_send_message((char*)&returnDevInfo, sizeof(struct TMSG_DEVINFO));
+    if (iRet < 0){
+        TCP_CLIENT_TRACK_WARN("msg: returnDeviceInfo fail %s,iRet=%d\n",m_szCameraID,iRet);
+        return -1;
+    } 
+    else
+    {
+       TCP_CLIENT_TRACK_INFO("msg: returnDeviceInfo success %s,send %d bytes\n",m_szCameraID,sizeof(struct TMSG_DEVINFO));
+       return 0;
+    }    
+}
+
 int sendLoginData(const char *m_szCameraID)
 { 
     struct TMSG_CAPLOGIN msgLogin;
@@ -722,7 +805,7 @@ int getTcpTimeout(void)
         return 0;
 }
 
-int sendAliveDataTask(const char *m_szCameraID)
+int sendRtpServerDataTask(const char *m_szCameraID)
 {
     uint32_t now = OS_JiffiesToMSecs(OS_GetJiffies());
     int iRet=0;
@@ -731,6 +814,19 @@ int sendAliveDataTask(const char *m_szCameraID)
        tcpClient.sendLastAliveTime=now;
        iRet=sendAliveData(m_szCameraID);
     }
+    switch(sendRtpServerCmdFlag)
+    {
+    case 1:
+        returnDeviceInfo(m_szCameraID, g_devInfo);
+        break;
+    case 2:
+        returnAudioValue(m_szCameraID, daVol_def);
+        returnDeviceInfo(m_szCameraID, g_devInfo);
+        break;
+    default:
+        break;
+    }
+    sendRtpServerCmdFlag=0;
     return iRet;
 }
 

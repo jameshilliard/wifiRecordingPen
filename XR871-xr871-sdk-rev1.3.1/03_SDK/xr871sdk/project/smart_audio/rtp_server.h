@@ -67,7 +67,15 @@ extern "C" {
 
     Component_Status rtp_server_task_init();
     void rtp_server_task(void *arg);
-   
+    //坐姿提醒 信息 的记录
+    int reportPoseRemind();
+    //休息提醒 的记录
+    int reportRestRemind();
+    //持续学习时长 的记录
+    int reportContinualStudy(int timeLengthInMin);
+    //坐姿 达标率改变
+    int poseDataStatus(int detectUnit, int manExistNum, int manNotExistNum, int goodPoseNum, int badPoseNum, char *detectInfo);
+
 
 #ifdef __cplusplus
 }

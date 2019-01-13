@@ -1,6 +1,8 @@
 #ifndef __HTTP_PLAYER_H_
 #define __HTTP_PLAYER_H_
 
+#include "driver/component/component_def.h"
+
 #define HTTP_PLAYER_INFO 1
 #define HTTP_PLAYER_WARN 1
 
@@ -19,6 +21,21 @@
 
 #define HTTP_PLAYER_THREAD_STACK_SIZE	1024*2
 
+#if 0
+#define FIRST_RESET 	"/usr/share/warinningSound/first/sit1.mp3"
+#define SECOND_RESET 	"/usr/share/warinningSound/second/sit2.mp3"
+#define THIRD_RESET 	"/usr/share/warinningSound/third/sit4.mp3"
+#define RESET 	        "/usr/share/warinningSound/reset/sit5.mp3"
+#define CLOSELEGWARN 	"/usr/share/closeLegWarn.mp3"
+#define RSET45 	        "/usr/share/rset45.mp3"
+#endif
+#define FIRST_RESET 	0
+#define SECOND_RESET 	1
+#define THIRD_RESET 	2
+#define RESET 	        3
+#define CLOSELEGWARN 	4
+#define RSET45 	        5
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +46,8 @@ extern "C" {
     int  addHttpStr(char *httpStr);
     int  analysisHttpStr(char *httpStr);
     int  stopHttpAudioPlay(int stopCode);
+    int  voice_tips_add_music(int type);
+    int  setVolume(uint8_t volume);
 
 #ifdef __cplusplus
 }
