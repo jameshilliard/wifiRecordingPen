@@ -173,30 +173,78 @@ int  analysisHttpStr(char *httpStr)
     return 0;
 }
 
-int voice_tips_add_music(int type)
+int voice_tips_add_music(int type,uint8_t nowFlag)
 {
     char mp3Path[128]={0};
     memset(mp3Path,0,sizeof(mp3Path));
     switch(type)
     {
         case FIRST_RESET:
-            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_SIT1_FLASHADDR,IS_SIT1_LENGTH);
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_SIT1_FLASHADDR,IS_SIT1_LENGTH);
             break;
         case SECOND_RESET:
-            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_SIT2_FLASHADDR,IS_SIT2_LENGTH);
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_SIT2_FLASHADDR,IS_SIT2_LENGTH);
             break;
         case THIRD_RESET:
-            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_SIT3_FLASHADDR,IS_SIT3_LENGTH);
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_SIT3_FLASHADDR,IS_SIT3_LENGTH);
             break;
         case RESET:
-            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_SIT5_FLASHADDR,IS_SIT5_LENGTH);
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_SIT5_FLASHADDR,IS_SIT5_LENGTH);
             break; 
         case CLOSELEGWARN:
-            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_CLOSELEGWARN_FLASHADDR,IS_CLOSELEGWARN_LENGTH);
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_CLOSELEGWARN_FLASHADDR,IS_CLOSELEGWARN_LENGTH);
             break;
         case RSET45:
-            sprintf(mp3Path,"flash:////0?addr=%d&length=%d",IS_RSET45_FLASHADDR,IS_RSET45_LENGTH);
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_RSET45_FLASHADDR,IS_RSET45_LENGTH);
             break;
+        case AFRESH_NET:
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_ANYKA_AFRESH_NET_CONFIG_FLASHADDR,IS_ANYKA_AFRESH_NET_CONFIG_LENGTH);
+            break;  
+        case CONN_SUCCESS: 
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_ANYKA_CONNECTED_SUCCESS_FLASHADDR,IS_ANYKA_CONNECTED_SUCCESS_LENGTH);
+            break;
+        case PLEASE_CONN : 
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_ANYKA_PLEASE_CONFIG_NET_FLASHADDR,IS_ANYKA_PLEASE_CONFIG_NET_LENGTH);
+            break;
+        case RECOVER_DEV : 
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_ANYKA_RECOVER_DEVICE_FLASHADDR,IS_ANYKA_RECOVER_DEVICE_LENGTH);
+            break;
+        case BEGIN_STUDY : 
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_BEGINSTUDYMODE_FLASHADDR,IS_BEGINSTUDYMODE_LENGTH);
+            break;
+        case MF_TEST110:
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST110_FLASHADDR,MF_TEST110_LENGTH);
+            break;
+        case MF_TEST111:
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST111_FLASHADDR,MF_TEST111_LENGTH);
+            break;
+        case MF_TEST11 :
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST11_FLASHADDR,MF_TEST11_LENGTH);
+            break;       
+        case MF_TEST12 :
+             sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST12_FLASHADDR,MF_TEST12_LENGTH);
+            break;        
+        case MF_TEST13 :
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST13_FLASHADDR,MF_TEST13_LENGTH);
+            break; 
+        case MF_TEST14 :
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST14_FLASHADDR,MF_TEST14_LENGTH);
+            break; 
+        case MF_TEST15 :
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST15_FLASHADDR,MF_TEST15_LENGTH);
+            break; 
+        case MF_TEST16 :
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST16_FLASHADDR,MF_TEST16_LENGTH);
+            break; 
+        case MF_TEST17 :
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST17_FLASHADDR,MF_TEST17_LENGTH);
+            break; 
+        case MF_TEST18 :
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST18_FLASHADDR,MF_TEST18_LENGTH);
+            break; 
+        case MF_TEST19 :
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST19_FLASHADDR,MF_TEST19_LENGTH);
+            break; 
         default:
             break;
     }
@@ -204,8 +252,11 @@ int voice_tips_add_music(int type)
     {
         return -1; 
     }
-    
-    return addHttpStr(mp3Path);
+
+    if(nowFlag==0)
+        return addHttpStr(mp3Path);
+    else
+        return playHttpAudio(mp3Path);
 }
 
 int  stopHttpAudioPlay(int stopCode)
@@ -273,6 +324,8 @@ void http_player_task(void *arg)
 	    switch(buttonCmd)
 	    {
 	    case CMD_PLAYER_SET_WIFI:
+	        voice_tips_add_music(RECOVER_DEV,1);
+	        OS_Sleep(3);
 	        HTTP_PLAYER_TRACK_INFO("buttonCmd CMD_PLAYER_SET_WIFI\n");
 	        setWifiRunState(CMD_WIFI_SMARTLINK);
 	        console_cmd("cedarx stop");
@@ -298,6 +351,10 @@ void http_player_task(void *arg)
 	        setVolume(sysInfo->volume);
 	        break;
 	   	case CMD_PLAYER_SMART_VOICE_START:
+	   	    if(getWifiState() == WLAN_STA_STATE_DISCONNECTED)
+	   	    {
+                voice_tips_add_music(PLEASE_CONN,1);
+	   	    } 
             if(getWifiState() == WLAN_STA_STATE_DISCONNECTED || 
                getTcpClientState() != STATE_TCP_CLINET_CONNECTED ||
                getTcpClientLoginState() != 1)

@@ -46,7 +46,7 @@ static STUDYRECORD      oneMinData;
 static STUDYRECORD      min45Data;
 
 extern uint32_t getTickSecond();
-extern int      voice_tips_add_music(int type);
+extern int      voice_tips_add_music(int type,uint8_t nowFlag);
 extern int      serial_write(uint8_t *buf, int32_t len);
 extern int      reportPoseRemind();
 extern int      reportRestRemind();
@@ -166,7 +166,7 @@ void oneMinWarnning(STUDYRECORD *data)
 			
 			closeLeg(1);//close leg
 		    OS_Sleep(1);
-			voice_tips_add_music(CLOSELEGWARN);//warnning sit correct
+			voice_tips_add_music(CLOSELEGWARN,0);//warnning sit correct
 			OS_Sleep(1);
 			closeLeg(1);//close leg
 			data->legFlage = 0;//灯关闭状态
@@ -182,7 +182,7 @@ void study45MinWarnning(STUDYRECORD *data)
 	if(data->correctTimes * 2 > 45*60)//45分钟提醒一次
 	{
 		SERIAL_DBG("study45MinWarnning:%d--------------------2\n", data->correctTimes);
-		voice_tips_add_music(RSET45); //提醒休息时间到了
+		voice_tips_add_music(RSET45,0); //提醒休息时间到了
 		data->correctTimes = 0;
 		reportRestRemind();
 	}
@@ -201,7 +201,7 @@ void oneTimeWarnning()
 		int fileNum = OS_Rand32()%3;
 		//fileNum += 1;
 		//sprintf(path, "/usr/share/warinningSound/first/sit%d.mp3", fileNum);
-		voice_tips_add_music(fileNum);//坐姿错误提醒
+		voice_tips_add_music(fileNum,0);//坐姿错误提醒
 	}
 	else
 	{
@@ -212,7 +212,7 @@ void oneTimeWarnning()
 			int fileNum = OS_Rand32()%3;
 			//fileNum += 1;
 			//sprintf(path, "/usr/share/warinningSound/first/sit%d.mp3", fileNum);
-			voice_tips_add_music(fileNum);//坐姿错误提醒
+			voice_tips_add_music(fileNum,0);//坐姿错误提醒
 			start = 0;
 			start = getTickSecond();
 		}

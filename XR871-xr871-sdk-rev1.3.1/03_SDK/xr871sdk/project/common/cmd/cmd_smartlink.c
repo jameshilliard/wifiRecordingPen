@@ -149,7 +149,8 @@ static int sc_vp_result_handler(char *result_str, int result_len,
 	return 0;
 }
 #endif
-
+#define CONN_SUCCESS    7
+extern int voice_tips_add_music(int type,uint8_t nowFlag);
 static void smartlink_task(void *arg)
 {
 #ifdef SMARTLINK_USE_AIRKISS
@@ -206,7 +207,7 @@ static void smartlink_task(void *arg)
             console_cmd(cmdBuf); 
             sprintf(cmdBuf,"sysinfo save");
             console_cmd(cmdBuf);
-            
+            voice_tips_add_music(CONN_SUCCESS,0);
 		}
 	}
 #endif

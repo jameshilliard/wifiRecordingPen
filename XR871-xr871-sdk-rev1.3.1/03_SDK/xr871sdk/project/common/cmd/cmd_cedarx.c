@@ -101,7 +101,7 @@ static int set_source(DemoPlayerContext *demoPlayer, char* pUrl)
     }
     printf("setDataSource end\n");
 
-    if ((!strncmp(pUrl, "http://", 7)) || (!strncmp(pUrl, "https://", 8))) {
+    if ((!strncmp(pUrl, "http://", 7)) || (!strncmp(pUrl, "https://", 8)) || (!strncmp(pUrl, "flash://", 8))) {
         if(XPlayerPrepareAsync(demoPlayer->mAwPlayer) != 0)
         {
             printf("error:\n");

@@ -26,17 +26,24 @@ void setWifiRunState(uint8_t runstate)
 
 void wifi_task(void *arg)
 {
-    int disConStateCount=0;
+    int  disConStateCount=0;
     char cmd[256]={0};
-    int cmdStatus=CMD_STATUS_FAIL;
+    int  cmdStatus=CMD_STATUS_FAIL;
     struct sysinfo *sysinfo = sysinfo_get();
-
+    uint8_t resetAudioFlag=0;
     WIFI_MANAGE_TRACK_INFO("wifi task start\n");
 	while (wifi_task_run) 
 	{
 	    switch(runStatus){
         case CMD_WIFI_SET_SSID:
             {
+                if(strlen((char *)sysinfo->wlan_sta_param.ssid)<=0)
+                {
+                    runStatus=CMD_WIFI_SET_PSK;
+                    if(resetAudioFlag==0) 
+                        resetAudioFlag=1;
+                    break;
+                }    
                 memset(cmd,0,sizeof(cmd));
                 snprintf(cmd,sizeof(cmd),"set ssid %s",sysinfo->wlan_sta_param.ssid);
                 WIFI_MANAGE_TRACK_INFO("wifi run: %s\n",cmd);
@@ -49,6 +56,13 @@ void wifi_task(void *arg)
             break;
         case CMD_WIFI_SET_PSK:
             {
+                if(strlen((char *)sysinfo->wlan_sta_param.psk)<=0)
+                {
+                    runStatus=CMD_WIFI_SET_PSK;
+                    if(resetAudioFlag==0) 
+                        resetAudioFlag=1;
+                    break;
+                } 
                 memset(cmd,0,sizeof(cmd));
                 snprintf(cmd,sizeof(cmd),"set psk %s",sysinfo->wlan_sta_param.psk);
                 WIFI_MANAGE_TRACK_INFO("wifi run: %s\n",cmd);
@@ -86,11 +100,18 @@ void wifi_task(void *arg)
         case CMD_WIFI_SMARTLINK:
             wlan_sta_state(&wifiStatus);
             if(wifiStatus==WLAN_STA_STATE_CONNECTED)
-               runStatus=CMD_WIFI_DETECT;  
+            {
+                runStatus=CMD_WIFI_DETECT; 
+            }   
             WIFI_MANAGE_TRACK_INFO("wifi run smartlink,wifiStatus=%d\n",wifiStatus);
             break;
         default:
             break;
+        }
+        if(resetAudioFlag==1)
+        {
+            resetAudioFlag=0xFF;
+            voice_tips_add_music(AFRESH_NET,0);
         }
 		OS_MSleep(500);
 	}

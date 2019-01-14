@@ -35,7 +35,23 @@
 #define RESET 	        3
 #define CLOSELEGWARN 	4
 #define RSET45 	        5
+#define AFRESH_NET      6
+#define CONN_SUCCESS    7
+#define PLEASE_CONN     8
+#define RECOVER_DEV     9
+#define BEGIN_STUDY     10
 
+#define MF_TEST110      11
+#define MF_TEST111      12
+#define MF_TEST11       13
+#define MF_TEST12       14
+#define MF_TEST13       15
+#define MF_TEST14       16
+#define MF_TEST15       17
+#define MF_TEST16       18
+#define MF_TEST17       19
+#define MF_TEST18       20
+#define MF_TEST19       21
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,7 +62,7 @@ extern "C" {
     int  addHttpStr(char *httpStr);
     int  analysisHttpStr(char *httpStr);
     int  stopHttpAudioPlay(int stopCode);
-    int  voice_tips_add_music(int type);
+    int  voice_tips_add_music(int type,uint8_t nowFlag);
     int  setVolume(uint8_t volume);
 
 #ifdef __cplusplus
