@@ -28,24 +28,39 @@ void wifi_task(void *arg)
 {
     int  disConStateCount=0;
     char cmd[256]={0};
+    char ssid[32]={0};
+    char psk[32]={0};
     int  cmdStatus=CMD_STATUS_FAIL;
+    uint8_t i=0;
     struct sysinfo *sysinfo = sysinfo_get();
     uint8_t resetAudioFlag=0;
-    WIFI_MANAGE_TRACK_INFO("wifi task start\n");
+    uint8_t wifiSuccess=0;
+    uint8_t wifiSuccessSetCount=0;
+    uint8_t saveWifiFlag=sysinfo->wlanStaFlag;
+    memcpy(ssid,sysinfo->wlan_sta_param.ssid,sizeof(ssid));
+    memcpy(psk,sysinfo->wlan_sta_param.psk,sizeof(psk));
+    WIFI_MANAGE_TRACK_INFO("wifi task start %s %s\n",ssid,psk);
+    for(i=0;i<5;i++)
+    {
+        if(strlen((char *)sysinfo->wlan_sta_params[i].ssid)>0)
+        {
+            WIFI_MANAGE_TRACK_INFO("wifi save %d %s %s\n",i,sysinfo->wlan_sta_params[i].ssid,sysinfo->wlan_sta_params[i].psk);  
+        } 
+    }
 	while (wifi_task_run) 
 	{
 	    switch(runStatus){
         case CMD_WIFI_SET_SSID:
             {
-                if(strlen((char *)sysinfo->wlan_sta_param.ssid)<=0)
+                if(strlen((char *)ssid)<=0)
                 {
-                    runStatus=CMD_WIFI_SET_PSK;
+                    runStatus=CMD_WIFI_SET_SSID;
                     if(resetAudioFlag==0) 
                         resetAudioFlag=1;
                     break;
                 }    
                 memset(cmd,0,sizeof(cmd));
-                snprintf(cmd,sizeof(cmd),"set ssid %s",sysinfo->wlan_sta_param.ssid);
+                snprintf(cmd,sizeof(cmd),"set ssid %s",ssid);
                 WIFI_MANAGE_TRACK_INFO("wifi run: %s\n",cmd);
                 cmdStatus=cmd_wlan_sta_exec(cmd);
                 if(cmdStatus==CMD_STATUS_OK || cmdStatus==CMD_STATUS_ACKED){
@@ -56,7 +71,7 @@ void wifi_task(void *arg)
             break;
         case CMD_WIFI_SET_PSK:
             {
-                if(strlen((char *)sysinfo->wlan_sta_param.psk)<=0)
+                if(strlen((char *)psk)<=0)
                 {
                     runStatus=CMD_WIFI_SET_PSK;
                     if(resetAudioFlag==0) 
@@ -64,7 +79,7 @@ void wifi_task(void *arg)
                     break;
                 } 
                 memset(cmd,0,sizeof(cmd));
-                snprintf(cmd,sizeof(cmd),"set psk %s",sysinfo->wlan_sta_param.psk);
+                snprintf(cmd,sizeof(cmd),"set psk %s",psk);
                 WIFI_MANAGE_TRACK_INFO("wifi run: %s\n",cmd);
                 cmdStatus=cmd_wlan_sta_exec(cmd);
                 if(cmdStatus==CMD_STATUS_OK || cmdStatus==CMD_STATUS_ACKED){
@@ -89,11 +104,50 @@ void wifi_task(void *arg)
             {
                 wlan_sta_state(&wifiStatus);
                 if(wifiStatus==WLAN_STA_STATE_DISCONNECTED)
+                {
                     disConStateCount++;
-                if(disConStateCount>10){
+                }
+                else
+                {
+                    if(wifiSuccess==0)
+                    {
+                        wifiSuccess=1;
+                        if(strncmp(ssid,(char *)sysinfo->wlan_sta_param.ssid,strlen(ssid))!=0)
+                        {
+                            sprintf(cmd,"sysinfo set sta ssid %s",(char *)ssid);
+                            console_cmd(cmd);
+                            sprintf(cmd,"sysinfo set sta psk %s",(char *)psk);
+                            console_cmd(cmd);
+                            sprintf(cmd,"sysinfo save");
+                            console_cmd(cmd);
+                        }
+                    }
+                }
+                if(disConStateCount>12)
+                {
                     disConStateCount=0;
-                    wlan_sta_connect();
-                    WIFI_MANAGE_TRACK_INFO("wifi run wlan_sta_connect\n");
+                    if(wifiSuccess==1)
+                    {
+                        wifiSuccessSetCount++;
+                        wlan_sta_connect();
+                        if(wifiSuccessSetCount>3)
+                        {
+                            wifiSuccess=0;
+                        }
+                    }
+                    else
+                    {
+                        if(saveWifiFlag==0)
+                            saveWifiFlag=5;
+                        saveWifiFlag--;
+                        if(strlen((char *)sysinfo->wlan_sta_params[saveWifiFlag].ssid)>0)
+                        {
+                            memcpy(ssid,sysinfo->wlan_sta_params[saveWifiFlag].ssid,sizeof(ssid));
+                            memcpy(psk,sysinfo->wlan_sta_params[saveWifiFlag].psk,sizeof(psk));                            
+                            runStatus=CMD_WIFI_SET_SSID;
+                        }    
+                    }
+                    WIFI_MANAGE_TRACK_INFO("wifi run wlan_sta_connect %s %s\n",ssid,psk);
                 }
             }
             break;
@@ -111,7 +165,7 @@ void wifi_task(void *arg)
         if(resetAudioFlag==1)
         {
             resetAudioFlag=0xFF;
-            voice_tips_add_music(AFRESH_NET,0);
+            voice_tips_add_music(PLEASE_CONN,0);
         }
 		OS_MSleep(500);
 	}

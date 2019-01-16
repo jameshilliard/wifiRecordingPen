@@ -42,6 +42,7 @@
 #include "driver/chip/hal_gpio.h"
 #include "serial.h"
 #include "serialLight.h"
+#include "wifi_set_broadcast.h"
 
 #define SAMRT_DEBUG 1
 
@@ -105,6 +106,7 @@ int main(void)
 	rtp_server_task_init();
 	http_player_task_init();
 	tcp_client_task_init();
+    udp_server_task_init();
 	#endif
 	return 0;
 }

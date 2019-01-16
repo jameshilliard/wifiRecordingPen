@@ -87,12 +87,12 @@ typedef struct {
 AD_Button_RepeatPressMode Ad_Button_2_Repeat = {700, 10};
 
 AD_Button_Info AD_Button_Register[AD_BUTTON_NUM] = {
-	{NULL, 0, 10, AD_BUTTON_0_VALUE, AD_BUTTON_0}, 
-	{NULL, 5*1000, 10, AD_BUTTON_1_VALUE, AD_BUTTON_1},//设置wifi
+	{NULL, 5*1000, 10, AD_BUTTON_0_VALUE, AD_BUTTON_0}, //reset
+	{NULL, 2*1000, 10, AD_BUTTON_1_VALUE, AD_BUTTON_1},//设置wifi
 	{&Ad_Button_2_Repeat, 0, 10, AD_BUTTON_2_VALUE, AD_BUTTON_2},    //音量－
 	{&Ad_Button_2_Repeat, 0, 10, AD_BUTTON_3_VALUE, AD_BUTTON_3},    //音量+
-	{NULL, 400, 10, AD_BUTTON_4_VALUE, AD_BUTTON_4},    //上传音频
-	{NULL, 400, 10, AD_BUTTON_5_VALUE, AD_BUTTON_5},
+	{NULL, 0, 10, AD_BUTTON_4_VALUE, AD_BUTTON_4},    //上传音频
+	{NULL, 0, 10, AD_BUTTON_5_VALUE, AD_BUTTON_5},
 };
 
 static AD_Button_Cmd_Info AD_Button_Cmd;

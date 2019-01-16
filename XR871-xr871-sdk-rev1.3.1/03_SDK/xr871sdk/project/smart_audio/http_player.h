@@ -40,6 +40,9 @@
 #define PLEASE_CONN     8
 #define RECOVER_DEV     9
 #define BEGIN_STUDY     10
+#define SENDFINISH      22
+#define SENDSTART       23
+
 
 #define MF_TEST110      11
 #define MF_TEST111      12
@@ -52,6 +55,9 @@
 #define MF_TEST17       19
 #define MF_TEST18       20
 #define MF_TEST19       21
+
+
+
 
 #ifdef __cplusplus
 extern "C" {

@@ -156,7 +156,7 @@ static enum cmd_status cmd_sysinfo_set_mac(char *cmd, struct sysinfo *sysinfo)
 #endif
 }
 
-static enum cmd_status cmd_sysinfo_set_ssid(char *cmd, uint8_t *ssid, uint8_t *ssid_len)
+enum cmd_status cmd_sysinfo_set_ssid(char *cmd, uint8_t *ssid, uint8_t *ssid_len)
 {
 	uint32_t len = cmd_strlen(cmd);
 
@@ -172,7 +172,7 @@ static enum cmd_status cmd_sysinfo_set_ssid(char *cmd, uint8_t *ssid, uint8_t *s
 	return CMD_STATUS_OK;
 }
 
-static enum cmd_status cmd_sysinfo_set_psk(char *cmd, uint8_t *psk)
+enum cmd_status cmd_sysinfo_set_psk(char *cmd, uint8_t *psk)
 {
 	uint32_t len = cmd_strlen(cmd);
 

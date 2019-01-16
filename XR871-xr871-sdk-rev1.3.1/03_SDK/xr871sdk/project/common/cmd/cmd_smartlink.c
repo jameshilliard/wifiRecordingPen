@@ -35,13 +35,14 @@
 
 #include "cmd_util.h"
 #include "common/framework/net_ctrl.h"
-
+#include "common/framework/sysinfo.h"
 #include "smartlink/sc_assistant.h"
 #include "common/cmd/cmd_smartlink.h"
 #include "smartlink/smart_config/wlan_smart_config.h"
 #include "smartlink/airkiss/wlan_airkiss.h"
 #include "smartlink/voice_print/voice_print.h"
 #include "console/console.h"
+
 
 #define SMARTLINK_USE_AIRKISS
 #define SMARTLINK_USE_SMARTCONFIG
@@ -149,8 +150,13 @@ static int sc_vp_result_handler(char *result_str, int result_len,
 	return 0;
 }
 #endif
+
 #define CONN_SUCCESS    7
-extern int voice_tips_add_music(int type,uint8_t nowFlag);
+extern int      voice_tips_add_music(int type,uint8_t nowFlag);
+extern enum cmd_status cmd_sysinfo_set_ssid(char *cmd, uint8_t *ssid, uint8_t *ssid_len);
+extern enum cmd_status cmd_sysinfo_set_psk(char *cmd, uint8_t *psk);
+extern int set_udp_server_status(int status);
+
 static void smartlink_task(void *arg)
 {
 #ifdef SMARTLINK_USE_AIRKISS
@@ -163,7 +169,7 @@ static void smartlink_task(void *arg)
 	wlan_voiceprint_result_t vp_result;
 #endif
 	uint32_t end_time;
-
+    
 #ifdef SMARTLINK_USE_AIRKISS
 	memset(&ak_result, 0, sizeof(wlan_airkiss_result_t));
 #endif
@@ -200,14 +206,42 @@ static void smartlink_task(void *arg)
 		if (!wlan_airkiss_connect_ack(g_wlan_netif, SMARTLINK_TIME_OUT_MS, &ak_result)) {
 			CMD_DBG("ssid:%s psk:%s random:%d\n", (char *)ak_result.ssid,
 			        (char *)ak_result.passphrase, ak_result.random_num);
-            char cmdBuf[64]={0};
-            sprintf(cmdBuf,"sysinfo set sta ssid %s",(char *)ak_result.ssid);
-            console_cmd(cmdBuf);
-            sprintf(cmdBuf,"sysinfo set sta psk %s",(char *)ak_result.passphrase);
-            console_cmd(cmdBuf); 
-            sprintf(cmdBuf,"sysinfo save");
-            console_cmd(cmdBuf);
-            voice_tips_add_music(CONN_SUCCESS,0);
+            {//add for audioAi
+                char cmdBuf[64]={0};
+                //sprintf(cmdBuf,"sysinfo set sta ssid %s",(char *)ak_result.ssid);
+                //console_cmd(cmdBuf);
+                //sprintf(cmdBuf,"sysinfo set sta psk %s",(char *)ak_result.passphrase);
+                //console_cmd(cmdBuf);
+                int saveFlag=0,i=0;
+                struct sysinfo *sysInfo=sysinfo_get();
+                memset((void *)&(sysInfo->wlan_sta_param),0,sizeof(sysInfo->wlan_sta_param));
+                cmd_sysinfo_set_ssid((char *)ak_result.ssid,sysInfo->wlan_sta_param.ssid,&(sysInfo->wlan_sta_param.ssid_len));
+                cmd_sysinfo_set_psk((char *)ak_result.passphrase,sysInfo->wlan_sta_param.psk);
+                for(i=0;i<5;i++)
+                {
+                    if(strlen((char *)sysInfo->wlan_sta_params[i].ssid)<=0)
+                    {
+                        saveFlag=i;
+                        break;
+                    }
+                }
+                if(i==5)
+                {
+                    sysInfo->wlanStaFlag++;
+                    if(sysInfo->wlanStaFlag>=5)
+                        sysInfo->wlanStaFlag=0;
+                    saveFlag=sysInfo->wlanStaFlag;
+                }
+                memset((void *)&(sysInfo->wlan_sta_params[saveFlag]),0,sizeof(sysInfo->wlan_sta_param));
+                cmd_sysinfo_set_ssid((char *)ak_result.ssid,sysInfo->wlan_sta_params[saveFlag].ssid,&(sysInfo->wlan_sta_params[saveFlag].ssid_len));
+                cmd_sysinfo_set_psk((char *)ak_result.passphrase,sysInfo->wlan_sta_params[saveFlag].psk);
+                sprintf(cmdBuf,"sysinfo save");
+                console_cmd(cmdBuf);
+               	CMD_DBG("[%d]ssid:%s psk:%s random:%d\n",saveFlag,(char *)ak_result.ssid,
+			        (char *)ak_result.passphrase, ak_result.random_num);
+                voice_tips_add_music(CONN_SUCCESS,0);
+                set_udp_server_status(1);
+            }
 		}
 	}
 #endif

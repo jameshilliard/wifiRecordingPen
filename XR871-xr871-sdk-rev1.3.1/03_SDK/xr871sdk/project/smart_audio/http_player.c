@@ -112,7 +112,7 @@ int  setVolume(uint8_t volume)
 {
     int iRet=CMD_STATUS_FAIL;
     char cmdStr[40]={0};
-    sprintf(cmdStr,"cedarx setvol %d",volume);
+    sprintf(cmdStr,"cedarx setvol %d",(volume+1)*6);//max:32
     iRet=console_cmd(cmdStr);
     if(iRet!=CMD_STATUS_ACKED && iRet!=CMD_STATUS_OK)
     {
@@ -211,6 +211,12 @@ int voice_tips_add_music(int type,uint8_t nowFlag)
             break;
         case BEGIN_STUDY : 
             sprintf(mp3Path,"flash://0?addr=%d&length=%d",IS_BEGINSTUDYMODE_FLASHADDR,IS_BEGINSTUDYMODE_LENGTH);
+            break;
+        case SENDFINISH:
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",V00_IS_SENDFINISH_FLASHADDR,V00_IS_SENDFINISH_LENGTH);
+            break;
+        case SENDSTART:
+            sprintf(mp3Path,"flash://0?addr=%d&length=%d",V00_IS_SENDSTART_FLASHADDR,V00_IS_SENDSTART_LENGTH);
             break;
         case MF_TEST110:
             sprintf(mp3Path,"flash://0?addr=%d&length=%d",MF_TEST110_FLASHADDR,MF_TEST110_LENGTH);
@@ -324,8 +330,8 @@ void http_player_task(void *arg)
 	    switch(buttonCmd)
 	    {
 	    case CMD_PLAYER_SET_WIFI:
-	        voice_tips_add_music(RECOVER_DEV,1);
-	        OS_Sleep(3);
+            voice_tips_add_music(PLEASE_CONN,1);
+	        OS_Sleep(5);
 	        HTTP_PLAYER_TRACK_INFO("buttonCmd CMD_PLAYER_SET_WIFI\n");
 	        setWifiRunState(CMD_WIFI_SMARTLINK);
 	        console_cmd("cedarx stop");
@@ -337,28 +343,37 @@ void http_player_task(void *arg)
 	    case CMD_PLAYER_VOLUME_DOWN:
 	        HTTP_PLAYER_TRACK_INFO("buttonCmd CMD_PLAYER_VOLUME_DOWN\n");
 	        sysInfo->volume--;
-	       if(sysInfo->volume < 0)
+	        if(sysInfo->volume < 0)
 	    	    sysInfo->volume=0;
+            else if(sysInfo->volume>=4)
+                sysInfo->volume=4;
 	        sysinfo_save();
 	        setVolume(sysInfo->volume);
 	        break;  
 	    case CMD_PLAYER_VOLUME_UP:
 	        HTTP_PLAYER_TRACK_INFO("buttonCmd CMD_PLAYER_VOLUME_UP\n");
 	    	sysInfo->volume++;
-	    	if(sysInfo->volume > 31)
-	    	    sysInfo->volume=31;
+            if(sysInfo->volume < 0)
+                sysInfo->volume=0;
+            else if(sysInfo->volume>=4)
+                sysInfo->volume=4;
 	        sysinfo_save();
 	        setVolume(sysInfo->volume);
 	        break;
 	   	case CMD_PLAYER_SMART_VOICE_START:
 	   	    if(getWifiState() == WLAN_STA_STATE_DISCONNECTED)
 	   	    {
-                voice_tips_add_music(PLEASE_CONN,1);
+                if(strlen((char *)sysInfo->wlan_sta_param.ssid)>0)
+                    voice_tips_add_music(AFRESH_NET,1);
+                else
+                    voice_tips_add_music(PLEASE_CONN,1);
 	   	    } 
             if(getWifiState() == WLAN_STA_STATE_DISCONNECTED || 
                getTcpClientState() != STATE_TCP_CLINET_CONNECTED ||
                getTcpClientLoginState() != 1)
                   break;
+            voice_tips_add_music(SENDSTART,0);
+            OS_MSleep(500);
 	   	    HTTP_PLAYER_TRACK_INFO("buttonCmd CMD_PLAYER_SMART_VOICE_START\n");
 	   	    cedarxControlStatus=0;
 	   	    initHttpAudioArray();
@@ -374,6 +389,11 @@ void http_player_task(void *arg)
 	   	    //console_cmd("cedarx end"); 
 	   	    console_cmd("audio end");
 	   	    sendTcpClientStatus(2);
+            if(getWifiState() == WLAN_STA_STATE_CONNECTED)
+            {
+                voice_tips_add_music(SENDFINISH,0);
+                //OS_MSleep(500);
+            }
             break;          
 	    case CMD_PLAYER_SMART_PLAY:
 	        if(gHttpUrl.lastHttpUrlFlag < MAX_HTTPAUDIO_NUM && 
@@ -385,8 +405,13 @@ void http_player_task(void *arg)
             }
 	        break;
 	    case CMD_PLAYER_SMART_PAUSE:
-	        cedarxControlStatus=0;
-	        console_cmd("cedarx pause");
+            voice_tips_add_music(RECOVER_DEV,1);
+            sysInfo->volume=1;
+            memset(&(sysInfo->wlan_sta_param),0,sizeof(sysInfo->wlan_sta_param));
+            memset(sysInfo->wlan_sta_params,0,sizeof(sysInfo->wlan_sta_param)*5);
+	        //cedarxControlStatus=0;
+	        console_cmd("sysinfo save");
+            HTTP_PLAYER_TRACK_INFO("buttonCmd CMD_PLAYER_SMART_RESET\n");
 	        break;
 	    default:
 	        break;

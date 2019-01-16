@@ -15,7 +15,7 @@
 
 static uint8_t      rtp_server_task_run = 0;
 static OS_Thread_t  rtp_server_task_thread;
-static char         guid[80]={0};
+static char         guid[64]={0};
 static char         gServer[80]={0};
 
 static int analyzeReturnInfo(const char *strResponse)
@@ -363,7 +363,11 @@ void rtp_server_task(void *arg)
     uint8_t cmdStatus=CMD_RTP_SERVER_GET_ADDR;
     int     iRet=-1;
     LoginReturnInfo  mLoginReturnInfo;
-    strncpy(guid,DEV_DEBUG_ID,sizeof(guid));
+    struct sysinfo *sysinfo = sysinfo_get();
+    if(strlen(sysinfo->udid)>0)
+        strncpy(guid,sysinfo->udid,sizeof(guid));
+    else
+        strncpy(guid,DEV_DEBUG_ID,sizeof(guid));
     strncpy(gServer,DEV_DE_ROUNTER_SERVER,sizeof(gServer));
     
     RTP_SERVER_TRACK_INFO("rtp server task start\n"); 

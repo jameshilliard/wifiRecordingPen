@@ -195,6 +195,7 @@ int sysinfo_default(void)
 #endif
 
 	memset(&g_sysinfo, 0, SYSINFO_SIZE);
+    
 
 	/* MAC address */
 	sysinfo_init_mac_addr();
@@ -204,7 +205,8 @@ int sysinfo_default(void)
 
 	/* netif STA */
 	g_sysinfo.sta_use_dhcp = 1;
-
+    //set volume
+    g_sysinfo.volume=1;
 	/* netif AP */
 	IP4_ADDR(&g_sysinfo.netif_ap_param.ip_addr, 192, 168, 51, 1);
 	IP4_ADDR(&g_sysinfo.netif_ap_param.net_mask, 255, 255, 255, 0);

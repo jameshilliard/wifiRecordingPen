@@ -473,7 +473,7 @@ int tcp_client_connect(const char *destipStr, uint16_t port)
     client_pcb = tcp_new();
     client_pcb->so_options |= SOF_KEEPALIVE;
     client_pcb->keep_idle = 50000;	   // ms
-    client_pcb->keep_intvl = 10000;	   // ms
+    client_pcb->keep_intvl = 5000;	   // ms
     client_pcb->keep_cnt = 5;  
     if(client_pcb != NULL){
         IP4_ADDR( &DestIPaddr, *destip, *(destip+1),*(destip+2), *(destip+3) );
@@ -492,7 +492,7 @@ err_t tcp_client_send(struct tcp_pcb *tpcb, struct client *tcpClient)
     err_t wr_err = ERR_OK;
     
     //TCP_CLIENT_TRACK_INFO("wr_err=%d,p_tx=%p,len=%d,snd_buf=%d\n",
-     //                      wr_err,tcpClient->p_tx,tcpClient->p_tx->len,tcp_sndbuf(tpcb));
+    //                      wr_err,tcpClient->p_tx,tcpClient->p_tx->len,tcp_sndbuf(tpcb));
     if(tcpClient->p_tx->len > tcp_sndbuf(tpcb))
         return ERR_MEM;
     while ((wr_err == ERR_OK) && (tcpClient->p_tx != NULL))
@@ -539,7 +539,7 @@ int tcp_send_message(void *msg, uint16_t len)
     {
         iRet=tcp_client_send(tcpClient.pcb,&tcpClient);
         if(iRet!=ERR_OK)
-            OS_MSleep(20);
+            OS_MSleep(50);
         else
             break;
     }

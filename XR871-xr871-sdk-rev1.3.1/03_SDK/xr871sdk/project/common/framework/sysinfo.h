@@ -92,6 +92,7 @@ struct sysinfo_netif_param {
 #endif
 };
 
+
 /**
  * @brief Sysinfo structure definition
  */
@@ -109,7 +110,12 @@ struct sysinfo {
 
 	struct sysinfo_netif_param netif_sta_param;
 	struct sysinfo_netif_param netif_ap_param;
-	int    volume;
+    
+	uint32_t volume;
+    uint32_t wlanStaFlag;
+    char   udid[64];
+    struct sysinfo_wlan_sta_param wlan_sta_params[5];
+    char   received[512];
 };
 
 #define SYSINFO_SIZE	sizeof(struct sysinfo)
