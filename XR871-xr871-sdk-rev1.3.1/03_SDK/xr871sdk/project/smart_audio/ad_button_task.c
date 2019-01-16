@@ -87,7 +87,7 @@ typedef struct {
 AD_Button_RepeatPressMode Ad_Button_2_Repeat = {700, 10};
 
 AD_Button_Info AD_Button_Register[AD_BUTTON_NUM] = {
-	{NULL, 5*1000, 10, AD_BUTTON_0_VALUE, AD_BUTTON_0}, //reset
+	{NULL, 4*1000, 10, AD_BUTTON_0_VALUE, AD_BUTTON_0}, //reset
 	{NULL, 2*1000, 10, AD_BUTTON_1_VALUE, AD_BUTTON_1},//…Ë÷√wifi
 	{&Ad_Button_2_Repeat, 0, 10, AD_BUTTON_2_VALUE, AD_BUTTON_2},    //“Ù¡ø£≠
 	{&Ad_Button_2_Repeat, 0, 10, AD_BUTTON_3_VALUE, AD_BUTTON_3},    //“Ù¡ø+

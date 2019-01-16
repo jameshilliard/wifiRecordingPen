@@ -33,7 +33,6 @@ void wifi_task(void *arg)
     int  cmdStatus=CMD_STATUS_FAIL;
     uint8_t i=0;
     struct sysinfo *sysinfo = sysinfo_get();
-    uint8_t resetAudioFlag=0;
     uint8_t wifiSuccess=0;
     uint8_t wifiSuccessSetCount=0;
     uint8_t saveWifiFlag=sysinfo->wlanStaFlag;
@@ -55,8 +54,6 @@ void wifi_task(void *arg)
                 if(strlen((char *)ssid)<=0)
                 {
                     runStatus=CMD_WIFI_SET_SSID;
-                    if(resetAudioFlag==0) 
-                        resetAudioFlag=1;
                     break;
                 }    
                 memset(cmd,0,sizeof(cmd));
@@ -74,8 +71,6 @@ void wifi_task(void *arg)
                 if(strlen((char *)psk)<=0)
                 {
                     runStatus=CMD_WIFI_SET_PSK;
-                    if(resetAudioFlag==0) 
-                        resetAudioFlag=1;
                     break;
                 } 
                 memset(cmd,0,sizeof(cmd));
@@ -161,11 +156,6 @@ void wifi_task(void *arg)
             break;
         default:
             break;
-        }
-        if(resetAudioFlag==1)
-        {
-            resetAudioFlag=0xFF;
-            voice_tips_add_music(PLEASE_CONN,0);
         }
 		OS_MSleep(500);
 	}

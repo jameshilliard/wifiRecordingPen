@@ -304,7 +304,7 @@ PLAYER_CMD read_payer_ctrl_cmd()
 					cmd = CMD_PLAYER_SMART_VOICE_STOP;
 				break;
 			case AD_BUTTON_0:
-				if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_SHORT_PRESS)
+				if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_LONG_PRESS)
 					cmd = CMD_PLAYER_SMART_PAUSE;
 				break;
 			default:
@@ -364,9 +364,9 @@ void http_player_task(void *arg)
 	   	    if(getWifiState() == WLAN_STA_STATE_DISCONNECTED)
 	   	    {
                 if(strlen((char *)sysInfo->wlan_sta_param.ssid)>0)
-                    voice_tips_add_music(AFRESH_NET,1);
-                else
                     voice_tips_add_music(PLEASE_CONN,1);
+                else
+                    voice_tips_add_music(AFRESH_NET,1);
 	   	    } 
             if(getWifiState() == WLAN_STA_STATE_DISCONNECTED || 
                getTcpClientState() != STATE_TCP_CLINET_CONNECTED ||
