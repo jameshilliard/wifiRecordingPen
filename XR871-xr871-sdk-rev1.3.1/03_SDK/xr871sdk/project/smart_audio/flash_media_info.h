@@ -25,8 +25,8 @@
 #define MF_TEST18_LENGTH                      7452
 #define MF_TEST19_LENGTH                      5184
 
-#define V00_IS_SENDFINISH_LENGTH              16902
-#define V00_IS_SENDSTART_LENGTH               15609
+#define V00_IS_SENDFINISH_LENGTH              7339
+#define V00_IS_SENDSTART_LENGTH               2917
 
 
 
@@ -53,7 +53,7 @@
 #define MF_TEST18_FLASHADDR                  (MF_TEST17_FLASHADDR                  +  5508)
 #define MF_TEST19_FLASHADDR                  (MF_TEST18_FLASHADDR                  +  7452) 
 #define V00_IS_SENDFINISH_FLASHADDR          (MF_TEST19_FLASHADDR                  +  5184) 
-#define V00_IS_SENDSTART_FLASHADDR           (V00_IS_SENDFINISH_FLASHADDR          + 16902) 
+#define V00_IS_SENDSTART_FLASHADDR           (V00_IS_SENDFINISH_FLASHADDR          +  7339) 
 
  
 #endif

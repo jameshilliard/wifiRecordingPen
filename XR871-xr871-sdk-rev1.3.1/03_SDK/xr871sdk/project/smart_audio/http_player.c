@@ -372,8 +372,8 @@ void http_player_task(void *arg)
                getTcpClientState() != STATE_TCP_CLINET_CONNECTED ||
                getTcpClientLoginState() != 1)
                   break;
-            voice_tips_add_music(SENDSTART,0);
-            OS_MSleep(500);
+            voice_tips_add_music(SENDSTART,1);
+            OS_MSleep(225);
 	   	    HTTP_PLAYER_TRACK_INFO("buttonCmd CMD_PLAYER_SMART_VOICE_START\n");
 	   	    cedarxControlStatus=0;
 	   	    initHttpAudioArray();

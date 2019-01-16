@@ -434,13 +434,13 @@ int console_cmd(const char *cmd)
       	if ((strlen((char *)console->cmdBuf)>0) && console->cmd_exec){
       	    console->cmdState=1;
             OS_SemaphoreRelease(&console->cmd_sem);
-            for(i=0;i<150;i++){
+            for(i=0;i<200;i++){
                 if(console->cmdState==0){
                     CONS_WRN("cmdResult=%d\n",console->cmdResult);
                     break;
                 }
                 CONS_WRN("i=%d cmdResult=%d\n",i,console->cmdResult);
-                OS_MSleep(100);
+                OS_MSleep(50);
 	        }  
       	}  
 	}
