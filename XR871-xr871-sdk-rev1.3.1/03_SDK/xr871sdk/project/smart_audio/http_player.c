@@ -72,7 +72,8 @@ int addHttpAudio(char *url)
 static int  playStartHttpAudio(char *httpStr)
 {
     int iRet=CMD_STATUS_FAIL;
-    iRet=console_cmd("cedarx stop");
+    //iRet=console_cmd("cedarx stop");
+    iRet=cmd_cedarx_stop_exec("cedarx stop");
     if(iRet!=CMD_STATUS_ACKED && iRet!=CMD_STATUS_OK)
         return iRet;
     int length=strlen(httpStr)+0x40;
@@ -378,7 +379,10 @@ void http_player_task(void *arg)
 	   	    cedarxControlStatus=0;
 	   	    initHttpAudioArray();
 	   	    if(sys_get_status_exec()!= STATUS_STOPPED)
-	   	        console_cmd("cedarx stop");
+	   	    {
+                //console_cmd("cedarx stop");
+                cmd_cedarx_stop_exec("cedarx stop");
+            }    
 	   	    //console_cmd("cedarx rec callback://");
 	   	    //console_cmd("cedarx rec file://wechat.pcm");
 	   	    console_cmd("audio httpcap 16000 1 record.pcm");

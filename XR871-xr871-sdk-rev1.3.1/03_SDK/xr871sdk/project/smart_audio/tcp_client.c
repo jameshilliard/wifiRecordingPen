@@ -39,7 +39,6 @@ struct client
     uint32_t sendLastAliveTime;
     uint32_t recvLastAliveTime;
     struct tcp_pcb *pcb;
-    struct pbuf *p_tx;
 }tcpClient;
 
 static struct TMSG_DEVINFO g_devInfo;
@@ -376,10 +375,6 @@ static void tcp_errfun(void *arg,err_t err)
  
 static void tcp_err_close()
 {
-    if(tcpClient.p_tx){
-        pbuf_free(tcpClient.p_tx);
-        tcpClient.p_tx=NULL;
-    }
     if(tcpClient.pcb)
     {
         tcp_recv(tcpClient.pcb, NULL);
@@ -406,10 +401,8 @@ static err_t tcp_client_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, er
     if(p == NULL){
         /* remote host closed connection */
         tcpClient->state = STATE_TCP_CLINET_CLOSING;
-        if(tcpClient->p_tx == NULL){
-           /* we're done sending, close connection */
-           tcp_client_connection_close(tpcb, tcpClient);
-        }
+        /* we're done sending, close connection */
+        tcp_client_connection_close(tpcb, tcpClient);
         ret_err = ERR_OK;
     }   
     else if(err != ERR_OK)
@@ -445,7 +438,6 @@ static err_t tcp_client_connected(void *arg, struct tcp_pcb *tpcb, err_t err)
     switch(err){
         case ERR_OK:  
             tcpClient.pcb = tpcb;                                 
-            tcpClient.p_tx = NULL;
             tcpClient.state = STATE_TCP_CLINET_CONNECTED;  
             tcp_arg(tpcb, (void *)&tcpClient); 
             tcp_recv(tpcb, tcp_client_recv);   
@@ -486,43 +478,17 @@ int tcp_client_connect(const char *destipStr, uint16_t port)
     return (int)err;
 }
 
-err_t tcp_client_send(struct tcp_pcb *tpcb, struct client *tcpClient)
+err_t tcp_client_send(struct tcp_pcb *tpcb, void *msg, uint16_t len)
 {
-    struct pbuf *ptr;
-    err_t wr_err = ERR_OK;
+    err_t wr_err = ERR_MEM;
     
-    //TCP_CLIENT_TRACK_INFO("wr_err=%d,p_tx=%p,len=%d,snd_buf=%d\n",
-    //                      wr_err,tcpClient->p_tx,tcpClient->p_tx->len,tcp_sndbuf(tpcb));
-    if(tcpClient->p_tx->len > tcp_sndbuf(tpcb))
-        return ERR_MEM;
-    while ((wr_err == ERR_OK) && (tcpClient->p_tx != NULL))
+    if(tcp_sndbuf(tpcb)>len)
     {
-        /* get pointer on pbuf from tcpClient structure */
-        ptr = tcpClient->p_tx;
-        wr_err = tcp_write(tpcb, ptr->payload, ptr->len, TCP_WRITE_FLAG_COPY);
-        TCP_CLIENT_TRACK_INFO("wr_err=%d,p_tx=%p,len=%d,snd_buf=%d\n",
-                               wr_err,tcpClient->p_tx,tcpClient->p_tx->len,tcp_sndbuf(tpcb));
-        //dumpHex((char*)ptr->payload,ptr->len);
-        if (wr_err == ERR_OK){ 
-            tcp_output(tpcb);
-            /* continue with next pbuf in chain (if any) */
-            tcpClient->p_tx = ptr->next;
-            if(tcpClient->p_tx != NULL){
-                /* increment reference count for tcpClient.p */
-                pbuf_ref(tcpClient->p_tx);
-            }
-            pbuf_free(ptr);
-        }
-        else if(wr_err == ERR_MEM){
-             tcp_output(tpcb);
-             /* we are low on memory, try later, defer to poll */
-            tcpClient->p_tx = ptr;                                                    
-        }
-        else{
-            tcpClient->p_tx = ptr;    
-            /* other problem ?? */
-        }
+        wr_err = tcp_write(tpcb, msg, len, TCP_WRITE_FLAG_COPY);
+        tcp_output(tpcb);
     }
+    TCP_CLIENT_TRACK_INFO("wr_err=%d,msg=%p,len=%d,snd_buf=%d\n",
+                           wr_err,msg,len,tcp_sndbuf(tpcb));
     return wr_err;
 }
 
@@ -531,13 +497,9 @@ int tcp_send_message(void *msg, uint16_t len)
     int i=0,iRet=0;
     if(tcpClient.state != STATE_TCP_CLINET_CONNECTED)  
         return -1;
-    if(tcpClient.p_tx == NULL){
-        tcpClient.p_tx  = pbuf_alloc(PBUF_TRANSPORT,len,PBUF_RAM);          
-        pbuf_take(tcpClient.p_tx , (char*)msg, len);
-    }
     for(i=0;i<10;i++)
     {
-        iRet=tcp_client_send(tcpClient.pcb,&tcpClient);
+        iRet=tcp_client_send(tcpClient.pcb,msg,len);
         if(iRet!=ERR_OK)
             OS_MSleep(50);
         else

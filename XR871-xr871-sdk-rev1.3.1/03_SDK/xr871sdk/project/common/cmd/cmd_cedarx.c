@@ -385,7 +385,7 @@ static enum cmd_status cmd_cedarx_play_exec(char *cmd)
 	return (iRet==0)?CMD_STATUS_OK:CMD_STATUS_FAIL;
 }
 
-static enum cmd_status cmd_cedarx_stop_exec(char *cmd)
+enum cmd_status cmd_cedarx_stop_exec(char *cmd)
 {
     if(demoPlayer==NULL)
         return CMD_STATUS_FAIL;

@@ -87,7 +87,7 @@ enum	 TMSGRETTYPE						//返回内容
 #define	CMDSESSION			        "DMCT" 	        //命令标识
 #define BWJYINTELLIGENT			    "NIWB"
 #define TIME_ALIVE_TIME             20*1000
-#define TIME_ALIVE_TIMEOUT          60*1000
+#define TIME_ALIVE_TIMEOUT          25*1000
 #define MAX_PACKET_LENGTH           03*1024
 
 /**************************************************************
