@@ -31,6 +31,11 @@ typedef struct {
   int32_t S_16_8[8];
 } WebRtcSpl_State48khzTo8khz;
 
+#define WEBRTC_SPL_MUL(a, b) \
+    ((int32_t) ((int32_t)(a) * (int32_t)(b)))
+
+#define WEBRTC_SPL_WORD16_MAX       32767
+
 
 #endif  // WEBRTC_COMMON_AUDIO_VAD_VAD_SP_H_
 
