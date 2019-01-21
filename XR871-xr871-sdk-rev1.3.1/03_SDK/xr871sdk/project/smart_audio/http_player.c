@@ -343,21 +343,17 @@ void http_player_task(void *arg)
 	        break;
 	    case CMD_PLAYER_VOLUME_DOWN:
 	        HTTP_PLAYER_TRACK_INFO("buttonCmd CMD_PLAYER_VOLUME_DOWN\n");
-	        sysInfo->volume--;
-	        if(sysInfo->volume < 0)
-	    	    sysInfo->volume=0;
-            else if(sysInfo->volume>=4)
-                sysInfo->volume=4;
+	        if(sysInfo->volume <= 0)
+	    	    sysInfo->volume=1;
+            sysInfo->volume--;
 	        sysinfo_save();
 	        setVolume(sysInfo->volume);
 	        break;  
 	    case CMD_PLAYER_VOLUME_UP:
 	        HTTP_PLAYER_TRACK_INFO("buttonCmd CMD_PLAYER_VOLUME_UP\n");
-	    	sysInfo->volume++;
-            if(sysInfo->volume < 0)
-                sysInfo->volume=0;
-            else if(sysInfo->volume>=4)
-                sysInfo->volume=4;
+            if(sysInfo->volume>=4)
+                sysInfo->volume=3;
+            sysInfo->volume++;
 	        sysinfo_save();
 	        setVolume(sysInfo->volume);
 	        break;

@@ -50,11 +50,11 @@ sysinfo get sta ssid
 sysinfo get sta psk
 sysinfo set sta ssid jingyan
 sysinfo set sta psk 12345678
-sysinfo save
+ 
 
 pm net_prepare
 
-sysinfo set sta ssid @PHICOMM_5912
+sysinfo set sta ssid @PHICOMM_59
 sysinfo set sta psk zmt123456
 sysinfo get sta ssid
 sysinfo get sta psk
@@ -73,6 +73,7 @@ cedarx destroy
 cedarx play
 cedarx stop
 cedarx pause
+cedarx seturl flash://0?addr=2097216&length=15444
 cedarx seturl file://music/1.mp3
 cedarx seturl flash://0?addr=2097216&length=128783
 cedarx seturl flash://0?addr=2225999&length=19872
@@ -90,14 +91,19 @@ cedarx setbuf 14336 6144 24576 10240
 stream fifo 2048, dec buf 3072, pcm buf 16385(frame size 8192).
 
 cedarx create
-cedarx seturl file://23341.amr
+cedarx seturl file://798827.amr
 cedarx play
 
-heap space
+heap space 
 heap info
 
+flash start
+flash stop
+flash overwrite a=0x280000 s=16
+flash read a=0x280000 s=16
 fs mount
 fs unmount
+net ping http://tsn.baidu.com/text2audio?lan=zh&ctp=1&cuid=abcdffffff&tok=24.19333ffb913dea78c23c34f227e7e252.2592000.1548336399.282335-10881617
 
 
 0x40050000
