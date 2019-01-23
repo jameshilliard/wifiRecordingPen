@@ -272,6 +272,14 @@ int  stopHttpAudioPlay(int stopCode)
     AD_Button_Cmd.cmd = AD_BUTTON_CMD_SHORT_PRESS;
     return 0;
 }
+
+int  stopSmartVoice(int stopCode)
+{
+    AD_Button_Cmd.id = AD_BUTTON_6_MINE;
+    AD_Button_Cmd.cmd = AD_BUTTON_CMD_RELEASE;
+    return 0;
+}
+
 	
 PLAYER_CMD read_payer_ctrl_cmd()
 {
@@ -301,13 +309,16 @@ PLAYER_CMD read_payer_ctrl_cmd()
 		    case AD_BUTTON_4:
 				if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_LONG_PRESS)
 					cmd = CMD_PLAYER_SMART_VOICE_START;
-				else if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_RELEASE)
-					cmd = CMD_PLAYER_SMART_VOICE_STOP;
+				//else if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_RELEASE)
+					//cmd = CMD_PLAYER_SMART_VOICE_STOP;
 				break;
 			case AD_BUTTON_0:
 				if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_LONG_PRESS)
 					cmd = CMD_PLAYER_SMART_PAUSE;
 				break;
+            case AD_BUTTON_6_MINE:
+                if (AD_Button_Cmd.cmd == AD_BUTTON_CMD_RELEASE)
+                   cmd = CMD_PLAYER_SMART_VOICE_STOP;
 			default:
 				break;
 		}

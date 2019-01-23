@@ -70,6 +70,7 @@ extern "C" {
     int  stopHttpAudioPlay(int stopCode);
     int  voice_tips_add_music(int type,uint8_t nowFlag);
     int  setVolume(uint8_t volume);
+    int  stopSmartVoice(int stopCode);
 
 #ifdef __cplusplus
 }

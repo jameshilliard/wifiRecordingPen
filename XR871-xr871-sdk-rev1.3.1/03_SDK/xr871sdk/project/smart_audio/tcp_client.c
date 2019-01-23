@@ -21,6 +21,7 @@
 #include "encode.h"
 #include "stack.h" 
 #include "driver/chip/hal_flash.h"
+#include "vad/webrtc_vad.h"
 
 #define MFLASH 0
 
@@ -32,6 +33,11 @@
 #define WAVE_FORMAT_PCM 	    1
 #define SPEEX_DATA_MAX_LEN	    (320)
 
+#define FIRST_DETECT_TIMEOVER   (10*50)     
+#define SECOND_DETECT_TIMEOVER  (10*20)
+#define FIRST_DETECT_AUDIO_IS_INVALID  (10*1+5) //150ms
+#define FIRST_DETECT_AUDIO_IS_VALID    (10*3) //150ms
+
 struct client
 {
     uint8_t  state;
@@ -41,6 +47,18 @@ struct client
     struct tcp_pcb *pcb;
 }tcpClient;
 
+
+typedef struct Vod_Detect_t_
+{
+    uint8_t  startFlag;
+    uint8_t  runState;   //0: no detect audio 1:detect audio 2:detect timeover
+    uint8_t  nowState;
+    uint16_t nowValidTime;
+    uint16_t nowInvalidTime;
+}Vod_Detect_t;
+
+
+static Vod_Detect_t gVodDetect;
 static struct TMSG_DEVINFO g_devInfo;
 static uint8_t      tcp_client_task_run = 0;
 static OS_Thread_t  tcp_client_task_thread;
@@ -57,6 +75,7 @@ SNode       *       top               = NULL;
 static OS_Mutex_t   mutexStack;
 int    daVol_def; //默认大拿音量，用户可以自定更改0-5
 static int          sendRtpServerCmdFlag=0;
+static VadInst*     gVadInst;
 #define stack_mutex_create(mtx)  (OS_MutexCreate(mtx) == OS_OK ? 0 : -1)
 #define stack_mutex_delete(mtx)  OS_MutexDelete(mtx)
 //#define stack_mutex_lock(mtx)    OS_MutexLock(mtx, OS_WAIT_FOREVER)
@@ -93,9 +112,23 @@ uint32_t getTickSecond()
 
 static int flash_start()
 {
+    int iRet=-1;
     if(amrFlashOpenFlag==0)
     {
         amrFlashOpenFlag=1;
+        if(gVadInst==NULL)
+        {
+            gVadInst=WebRtcVad_Create();
+            iRet=WebRtcVad_Init(gVadInst);
+            memset(&gVodDetect,0,sizeof(gVodDetect));
+            gVodDetect.startFlag=1;
+            if(iRet==0)
+            {
+                WebRtcVad_set_mode(gVadInst,3);
+            }
+            TCP_CLIENT_TRACK_INFO("WebRtcVad_Init %d\n",iRet);
+        }
+        
     	if(HAL_Flash_Open(MFLASH, 5000) != HAL_OK)
     	{
     		TCP_CLIENT_TRACK_INFO("flash driver open failed\n");
@@ -110,6 +143,12 @@ static int flash_stop()
 	if(amrFlashOpenFlag==1)
 	{
 	    amrFlashOpenFlag=0;
+        if(gVadInst)
+        {
+            WebRtcVad_Free(gVadInst);
+            gVadInst=NULL;
+            TCP_CLIENT_TRACK_INFO("WebRtcVad_Free\n");
+        }
     	if(HAL_Flash_Close(MFLASH) != HAL_OK){
     		TCP_CLIENT_TRACK_INFO("flash driver close failed\n");
     		return -1;
@@ -463,10 +502,10 @@ int tcp_client_connect(const char *destipStr, uint16_t port)
     memset(&tcpClient,0,sizeof(tcpClient));
     sscanf(destipStr,"%d.%d.%d.%d",(int *)destip, (int *)(destip+1),(int *)(destip+2), (int *)(destip+3));
     client_pcb = tcp_new();
-    client_pcb->so_options |= SOF_KEEPALIVE;
-    client_pcb->keep_idle = 50000;	   // ms
-    client_pcb->keep_intvl = 5000;	   // ms
-    client_pcb->keep_cnt = 5;  
+    //client_pcb->so_options |= SOF_KEEPALIVE;
+    //client_pcb->keep_idle = 50000;	   // ms
+    //client_pcb->keep_intvl = 5000;	   // ms
+    //client_pcb->keep_cnt = 5;  
     if(client_pcb != NULL){
         IP4_ADDR( &DestIPaddr, *destip, *(destip+1),*(destip+2), *(destip+3) );
         err = tcp_connect(client_pcb,&DestIPaddr,port,tcp_client_connected);
@@ -643,6 +682,7 @@ int saveAudioDataToMMC(const char *audioBuffer,int length,int flag)
 
 int sendAudioData(const char *audioBuffer,int length,int flag,int type)
 {
+    static uint16_t failCount=0;
     INTELLIGENT_DATA m_intelligentData;
     memset(&m_intelligentData, 0, sizeof(INTELLIGENT_DATA));
     memcpy(&m_intelligentData.session,BWJYINTELLIGENT,strlen(BWJYINTELLIGENT));//2048+36+2+4
@@ -670,13 +710,19 @@ int sendAudioData(const char *audioBuffer,int length,int flag,int type)
     bytSendAudioBuf[iSendAudioLen++] = 0x00;
     int iRet = tcp_send_message((char*)bytSendAudioBuf,iSendAudioLen);
     if(iRet < 0){
+        failCount++;
         TCP_CLIENT_TRACK_WARN("msg: audio fail,iRet=%d\n",iRet);
     } 
     else
     {
 		TCP_CLIENT_TRACK_INFO("msg: audio success,send %d bytes\n",iSendAudioLen);
 		iRet=0;
+        failCount=0;
     }  
+    if(failCount>=5)
+    {
+        tcpClient.recvLastAliveTime=0;//force to end tcpsend,becase failure 5 times;
+    }
 	return iRet;
 }
 
@@ -703,7 +749,9 @@ int pushPcmAudioData(const char *audioBuffer,int length,int flag,int type)
     return 0;
 }
 
-int pushEncodePcmToSpeex(const char *audioBuffer,int length)
+
+
+static int pushEncodePcmToSpeex(const char *audioBuffer,int length)
 {
     int outLength=0;
 	encodePcmToSpeex(audioBuffer,length,speexBuffer,64,&outLength);
@@ -722,6 +770,65 @@ int pushEncodePcmToSpeex(const char *audioBuffer,int length)
             amrFlashNum=FLASH_4K_MAX-1;
         memcpy(amrAudioBuf,speexBuffer+armFlag,outLength-armFlag);
         amrSumLength=outLength-armFlag;
+    }
+    return 0;
+}
+
+static int solveVodDect(int iRet)
+{
+    if(iRet!=gVodDetect.nowState)
+    {
+        //TCP_CLIENT_TRACK_INFO("solveVodDect %d %d %d\n",iRet,gVodDetect.runState,gVodDetect.nowValidTime);
+        gVodDetect.nowInvalidTime++;
+        if(gVodDetect.nowInvalidTime>=(FIRST_DETECT_AUDIO_IS_INVALID)) //filter invald data;
+        {
+            TCP_CLIENT_TRACK_INFO("WebRtcVad_Process %d %d %d\n",iRet,gVodDetect.runState,gVodDetect.nowValidTime);
+            gVodDetect.nowState=iRet;
+            gVodDetect.nowValidTime=0;
+        }
+    }
+    else
+    {
+        gVodDetect.nowInvalidTime=0;
+        gVodDetect.nowValidTime++; 
+    }
+    if(gVodDetect.runState==0)
+    {
+        if(iRet==0 && gVodDetect.nowValidTime>=(FIRST_DETECT_TIMEOVER))
+        {
+            gVodDetect.runState=2;
+            gVodDetect.startFlag=0;
+            stopSmartVoice(1);
+            TCP_CLIENT_TRACK_INFO("WebRtcVad_Process %d %d %d\n",iRet,gVodDetect.runState,gVodDetect.nowValidTime);
+        }
+        else if(iRet==1 && gVodDetect.nowValidTime>=(FIRST_DETECT_AUDIO_IS_VALID))
+        {
+            gVodDetect.runState=1;
+            gVodDetect.nowValidTime=0;
+        }
+    }
+    else if(gVodDetect.runState==1)
+    {
+        if(iRet==0 && gVodDetect.nowValidTime>=(SECOND_DETECT_TIMEOVER))
+        {
+            gVodDetect.startFlag=0;
+            gVodDetect.runState=2;
+            stopSmartVoice(1);
+            TCP_CLIENT_TRACK_INFO("WebRtcVad_Process %d %d %d\n",iRet,gVodDetect.runState,gVodDetect.nowValidTime);
+        }
+    }
+    return 0;
+}
+static int solvePcmAudio(const char *audioBuffer,int length)
+{
+    int iRet=-1;
+    pushEncodePcmToSpeex(audioBuffer,length);
+    if(gVadInst)
+    {
+        iRet=WebRtcVad_Process(gVadInst,16000, (const int16_t*)(audioBuffer), 160);
+        solveVodDect(iRet);
+        //dumpHex((char*)(bytSendAudioBuf), 320);
+        //TCP_CLIENT_TRACK_INFO("WebRtcVad_Process %d\n",iRet);
     }
     return 0;
 }
@@ -773,8 +880,15 @@ int sendRtpServerDataTask(const char *m_szCameraID)
     int iRet=0;
     if((now-tcpClient.sendLastAliveTime)>TIME_ALIVE_TIME)
     {
-       tcpClient.sendLastAliveTime=now;
-       iRet=sendAliveData(m_szCameraID);
+       if(gVodDetect.startFlag==1)
+       {
+           tcpClient.recvLastAliveTime=now; 
+       }
+       else
+       {
+           tcpClient.sendLastAliveTime=now;
+           iRet=sendAliveData(m_szCameraID);
+       }
     }
     switch(sendRtpServerCmdFlag)
     {
@@ -844,14 +958,14 @@ void tcp_client_speex_task(void *arg)
                                 flag=SPEEX_DATA_MAX_LEN-audioBufLength;
                                 lesslength=size-flag;
                                 memcpy(bytSendAudioBuf+audioBufLength,buf,flag);
-                                pushEncodePcmToSpeex((char *)bytSendAudioBuf,SPEEX_DATA_MAX_LEN);
+                                solvePcmAudio((char *)bytSendAudioBuf,SPEEX_DATA_MAX_LEN);
                                 audioBufLength=0;
                             }
                             for(i=0;i<20;i++)
                             {
                                 if(lesslength>SPEEX_DATA_MAX_LEN)
                                 {
-                                	pushEncodePcmToSpeex((char *)buf+flag+SPEEX_DATA_MAX_LEN*i,SPEEX_DATA_MAX_LEN);
+                                	solvePcmAudio((char *)buf+flag+SPEEX_DATA_MAX_LEN*i,SPEEX_DATA_MAX_LEN);
                                     lesslength=lesslength-SPEEX_DATA_MAX_LEN;
                                 }
                                 else
@@ -956,7 +1070,7 @@ Component_Status tcp_client_task_init()
 		                tcp_client_speex_task,
 		               	NULL,
 		                OS_THREAD_PRIO_APP,
-		                RTP_SERVER_THREAD_STACK_SIZE*2) != OS_OK) {
+		                RTP_SERVER_THREAD_STACK_SIZE*3) != OS_OK) {
 		TCP_CLIENT_TRACK_WARN("tcp client thread create error\n");
 		return COMP_ERROR;
 	}
