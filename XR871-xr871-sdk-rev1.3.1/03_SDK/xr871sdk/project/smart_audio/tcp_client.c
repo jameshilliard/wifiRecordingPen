@@ -35,7 +35,7 @@
 
 #define FIRST_DETECT_TIMEOVER   (10*50)     
 #define SECOND_DETECT_TIMEOVER  (10*20)
-#define FIRST_DETECT_AUDIO_IS_INVALID  (10*1+5) //150ms
+#define FIRST_DETECT_AUDIO_IS_INVALID  (10*1) //100ms
 #define FIRST_DETECT_AUDIO_IS_VALID    (10*3) //150ms
 
 struct client
@@ -782,7 +782,7 @@ static int solveVodDect(int iRet)
         gVodDetect.nowInvalidTime++;
         if(gVodDetect.nowInvalidTime>=(FIRST_DETECT_AUDIO_IS_INVALID)) //filter invald data;
         {
-            TCP_CLIENT_TRACK_INFO("WebRtcVad_Process %d %d %d\n",iRet,gVodDetect.runState,gVodDetect.nowValidTime);
+            TCP_CLIENT_TRACK_INFO("WebRtcVad_Process FIRST_DETECT_AUDIO_IS_INVALID %d %d %d\n",iRet,gVodDetect.runState,gVodDetect.nowValidTime);
             gVodDetect.nowState=iRet;
             gVodDetect.nowValidTime=0;
         }
@@ -794,27 +794,28 @@ static int solveVodDect(int iRet)
     }
     if(gVodDetect.runState==0)
     {
-        if(iRet==0 && gVodDetect.nowValidTime>=(FIRST_DETECT_TIMEOVER))
+        if(gVodDetect.nowState==0 && gVodDetect.nowValidTime>=(FIRST_DETECT_TIMEOVER))
         {
             gVodDetect.runState=2;
             gVodDetect.startFlag=0;
             stopSmartVoice(1);
-            TCP_CLIENT_TRACK_INFO("WebRtcVad_Process %d %d %d\n",iRet,gVodDetect.runState,gVodDetect.nowValidTime);
+            TCP_CLIENT_TRACK_INFO("WebRtcVad_Process FIRST_DETECT_TIMEOVER %d %d %d\n",iRet,gVodDetect.runState,gVodDetect.nowValidTime);
         }
-        else if(iRet==1 && gVodDetect.nowValidTime>=(FIRST_DETECT_AUDIO_IS_VALID))
+        else if(gVodDetect.nowState==1 && gVodDetect.nowValidTime>=(FIRST_DETECT_AUDIO_IS_VALID))
         {
             gVodDetect.runState=1;
             gVodDetect.nowValidTime=0;
+            TCP_CLIENT_TRACK_INFO("WebRtcVad_Process FIRST_DETECT_AUDIO_IS_VALID %d %d %d\n",iRet,gVodDetect.runState,gVodDetect.nowValidTime);
         }
     }
     else if(gVodDetect.runState==1)
     {
-        if(iRet==0 && gVodDetect.nowValidTime>=(SECOND_DETECT_TIMEOVER))
+        if(gVodDetect.nowState==0 && gVodDetect.nowValidTime>=(SECOND_DETECT_TIMEOVER))
         {
             gVodDetect.startFlag=0;
             gVodDetect.runState=2;
             stopSmartVoice(1);
-            TCP_CLIENT_TRACK_INFO("WebRtcVad_Process %d %d %d\n",iRet,gVodDetect.runState,gVodDetect.nowValidTime);
+            TCP_CLIENT_TRACK_INFO("WebRtcVad_Process SECOND_DETECT_TIMEOVER %d %d %d\n",iRet,gVodDetect.runState,gVodDetect.nowValidTime);
         }
     }
     return 0;
